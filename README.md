@@ -1,7 +1,18 @@
-# Firebase Studio
+# TicketEase
 
-This is a NextJS starter in Firebase Studio.
+A modern bus ticket booking platform built with Next.js, Firebase, and Tailwind CSS.
 
-To get started, take a look at src/app/page.tsx.
+## Features
 
-Your app is being deployed automatically.
+- Bus ticket search and booking
+- Seat selection
+- Multiple pickup points
+- Secure payment processing
+- Booking management
+- Admin dashboard
+- Complaint handling
+- Real-time updates
+
+## Deployment
+
+The site is deployed at: https://imsifat1.github.io/ticketease/
