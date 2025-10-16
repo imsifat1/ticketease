@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "hero-background",
+      "description": "A scenic view of a sea beach.",
+      "imageUrl": "https://picsum.photos/seed/sea-beach/1920/1080",
+      "imageHint": "sea beach"
+    },
+    {
+      "id": "payment-methods",
+      "description": "A list of available payment method logos.",
+      "imageUrl": "https://picsum.photos/seed/payments/800/100",
+      "imageHint": "payment logos"
+    }
+  ]
+}
