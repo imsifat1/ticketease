@@ -32,37 +32,49 @@ interface PassengerDetailsFormProps {
   route: BusRoute;
   selectedSeats: string[];
   pickupPoint: string;
+  expiryTimestamp: number | null;
+  onTimeout: () => void;
 }
 
 export interface PassengerDetailsFormHandle {
   triggerValidation: () => Promise<boolean>;
 }
 
-function Timer({ initialMinutes = 4 }: { initialMinutes: number }) {
-  const [seconds, setSeconds] = useState(initialMinutes * 60);
+function Timer({ expiryTimestamp, onTimeout }: { expiryTimestamp: number, onTimeout: () => void }) {
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
 
   useEffect(() => {
-    if (seconds <= 0) return;
+    const calculateRemaining = () => {
+      const remaining = Math.round((expiryTimestamp - Date.now()) / 1000);
+      return remaining > 0 ? remaining : 0;
+    };
+
+    setRemainingSeconds(calculateRemaining());
 
     const interval = setInterval(() => {
-      setSeconds(prevSeconds => prevSeconds - 1);
+      const remaining = calculateRemaining();
+      setRemainingSeconds(remaining);
+      if (remaining <= 0) {
+        clearInterval(interval);
+        onTimeout();
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [seconds]);
+  }, [expiryTimestamp, onTimeout]);
 
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = seconds % 60;
+  const minutes = Math.floor(remainingSeconds / 60);
+  const seconds = remainingSeconds % 60;
 
   return (
-    <div className={`font-bold ${seconds < 60 ? 'text-destructive' : ''}`}>
-      {String(minutes).padStart(2, '0')}:{String(remainingSeconds).padStart(2, '0')}
+    <div className={`font-bold ${remainingSeconds < 60 ? 'text-destructive' : ''}`}>
+      {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
     </div>
   );
 }
 
 const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDetailsFormProps>(
-  ({ route, selectedSeats, pickupPoint }, ref) => {
+  ({ route, selectedSeats, pickupPoint, expiryTimestamp, onTimeout }, ref) => {
     const subtotal = route.price * selectedSeats.length;
     const processingFee = subtotal * 0.025;
     const discount = 200.00; // Example discount
@@ -191,7 +203,7 @@ const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDet
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle>Trip Details</CardTitle>
                 <div className="text-sm">
-                    Time left: <Timer initialMinutes={4} />
+                    Time left: {expiryTimestamp && <Timer expiryTimestamp={expiryTimestamp} onTimeout={onTimeout} />}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4 text-sm">
@@ -246,3 +258,5 @@ const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDet
 PassengerDetailsForm.displayName = "PassengerDetailsForm";
 
 export default PassengerDetailsForm;
+
+    

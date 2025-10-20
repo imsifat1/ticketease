@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
@@ -26,13 +26,32 @@ interface BookingSheetContentProps {
   onClose: () => void;
 }
 
+const TIMER_KEY = 'bookingExpiryTimestamp';
+
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
   const [step, setStep] = useState(1); // 1: seat, 2: pickup, 3: summary
+  const [expiryTimestamp, setExpiryTimestamp] = useState<number | null>(null);
+
   const { toast } = useToast();
   const passengerFormRef = useRef<PassengerDetailsFormHandle>(null);
+
+  useEffect(() => {
+    // On component mount, check if there's an existing timer
+    const storedTimestamp = localStorage.getItem(TIMER_KEY);
+    if (storedTimestamp) {
+        const timestamp = parseInt(storedTimestamp, 10);
+        if (timestamp > Date.now()) {
+            setExpiryTimestamp(timestamp);
+            setStep(3); // Assume if timer is running, user was at summary
+            // You might want to restore selectedSeats and pickupPoint from localStorage as well if you want full persistence
+        } else {
+            localStorage.removeItem(TIMER_KEY);
+        }
+    }
+  }, []);
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
@@ -57,6 +76,30 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     });
   };
 
+  const startTimer = () => {
+    const newExpiryTimestamp = Date.now() + 4 * 60 * 1000;
+    localStorage.setItem(TIMER_KEY, newExpiryTimestamp.toString());
+    setExpiryTimestamp(newExpiryTimestamp);
+  };
+
+  const clearTimer = () => {
+      localStorage.removeItem(TIMER_KEY);
+      setExpiryTimestamp(null);
+  }
+
+  const handleTimeout = () => {
+    toast({
+        title: "Session Expired",
+        description: "Your selected seats have been released. Please try again.",
+        variant: "destructive",
+    });
+    clearTimer();
+    setSelectedSeats([]);
+    setSelectedPickupPoint('');
+    setStep(1);
+    onClose();
+  };
+
   const handleProceedToPickup = () => {
     if (step === 1 && selectedSeats.length > 0) {
       setStep(2);
@@ -65,6 +108,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleProceedToSummary = () => {
     if (step === 2 && selectedPickupPoint) {
+      startTimer();
       setStep(3);
     }
   };
@@ -74,6 +118,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
       const isValid = await passengerFormRef.current.triggerValidation();
       if (isValid) {
         // In a real app, this would involve a payment gateway
+        clearTimer();
         setIsBookingConfirmed(true);
       }
     }
@@ -210,6 +255,8 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                     route={route}
                     selectedSeats={selectedSeats}
                     pickupPoint={selectedPickupPoint}
+                    expiryTimestamp={expiryTimestamp}
+                    onTimeout={handleTimeout}
                  />
             </div>
         )}
@@ -242,7 +289,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                 )}
                 {step === 3 && (
                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="lg" onClick={() => setStep(2)}>
+                        <Button variant="outline" size="lg" onClick={() => { setStep(2); clearTimer(); }}>
                             <ArrowLeft className="mr-2 h-4 w-4" /> Back
                         </Button>
                         <Button size="lg" onClick={handleConfirmBooking}>
@@ -273,3 +320,5 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     </>
   );
 }
+
+    
