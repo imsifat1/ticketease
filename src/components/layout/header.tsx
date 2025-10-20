@@ -12,7 +12,7 @@ const Header = () => {
         </Link>
         
         <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
-          <Link href="#" className="flex items-center gap-2 text-foreground/80 hover:text-primary transition-colors">
+          <Link href="/" className="flex items-center gap-2 text-foreground/80 hover:text-primary transition-colors">
             <Bus className="w-5 h-5" />
             <span>Bus</span>
           </Link>
