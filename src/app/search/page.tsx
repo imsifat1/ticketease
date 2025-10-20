@@ -3,7 +3,7 @@
 import { Suspense, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, parse, parseISO } from 'date-fns';
-import { ArrowRight, Calendar, SlidersHorizontal } from 'lucide-react';
+import { ArrowRight, Calendar, SlidersHorizontal, User } from 'lucide-react';
 
 import RouteList from './components/route-list';
 import { mockBusRoutes } from '@/lib/mock-data';
@@ -14,16 +14,52 @@ import BookingSheetContent from './components/booking-sheet-content';
 import { Sidebar, SidebarProvider, SidebarTrigger, SidebarInset } from '@/components/ui/sidebar';
 import FilterSidebar from './components/filter-sidebar';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export type PriceSort = 'low-to-high' | 'high-to-low' | '';
 export type TimeFilter = 'early-morning' | 'morning' | 'afternoon' | 'evening' | 'night';
 export type ClassFilter = 'non-ac' | 'ac-seater' | 'sleeper-ac' | 'business-ac';
 
 
+function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onLoginSuccess: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Login with Mobile</DialogTitle>
+          <DialogDescription>
+            Please enter your mobile number to continue. A real app would send an OTP.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="mobile" className="text-right">
+              Mobile
+            </Label>
+            <Input id="mobile" type="tel" placeholder="+8801..." className="col-span-3" />
+          </div>
+        </div>
+        <Button onClick={onLoginSuccess} className="w-full">
+          Login & Continue
+        </Button>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function SearchResults() {
   const searchParams = useSearchParams();
   const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+  // --- Mock Auth State ---
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const [pendingRoute, setPendingRoute] = useState<BusRoute | null>(null);
+  // -----------------------
 
   // Filter states
   const [priceSort, setPriceSort] = useState<PriceSort>('');
@@ -75,8 +111,23 @@ function SearchResults() {
   }, [from, to, priceSort, timeFilters, classFilters]);
 
   const handleRouteSelect = (route: BusRoute) => {
-    setSelectedRoute(route);
-    setIsSheetOpen(true);
+    if (isLoggedIn) {
+      setSelectedRoute(route);
+      setIsSheetOpen(true);
+    } else {
+      setPendingRoute(route);
+      setIsLoginDialogOpen(true);
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setIsLoginDialogOpen(false);
+    if (pendingRoute) {
+      setSelectedRoute(pendingRoute);
+      setIsSheetOpen(true);
+      setPendingRoute(null);
+    }
   };
   
   const handleTimeFilterChange = (filter: TimeFilter) => {
@@ -141,14 +192,22 @@ function SearchResults() {
                     </>
                   )}
                 </div>
-                <div className="md:hidden">
-                    <SidebarTrigger asChild>
-                      <Button variant="outline">
-                        <span>
-                          <SlidersHorizontal className="mr-2" /> Filters
-                        </span>
-                      </Button>
-                    </SidebarTrigger>
+                <div className="flex items-center gap-2">
+                   {isLoggedIn && (
+                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                      <User className="w-5 h-5" />
+                      <span>Logged In</span>
+                    </div>
+                  )}
+                  <div className="md:hidden">
+                      <SidebarTrigger asChild>
+                        <Button variant="outline">
+                          <span>
+                            <SlidersHorizontal className="mr-2" /> Filters
+                          </span>
+                        </Button>
+                      </SidebarTrigger>
+                  </div>
                 </div>
               </div>
             </div>
@@ -159,6 +218,11 @@ function SearchResults() {
       </div>
       </SidebarProvider>
 
+      <LoginDialog
+        open={isLoginDialogOpen}
+        onOpenChange={setIsLoginDialogOpen}
+        onLoginSuccess={handleLoginSuccess}
+      />
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="w-full sm:max-w-xl lg:max-w-2xl overflow-y-auto">

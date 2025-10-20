@@ -97,7 +97,7 @@ export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
                   </div>
                 </div>
                 <Button onClick={() => onSelectRoute(route)} className="w-full md:w-auto">
-                  View Seats <ArrowRight className="ml-2 w-4 h-4" />
+                  Book Seats <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
 
