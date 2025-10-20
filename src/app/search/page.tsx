@@ -32,6 +32,8 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  
+  const isDevMode = !process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID.startsWith('ACxxx');
 
   const handleOpenChange = (isOpen: boolean) => {
     onOpenChange(isOpen);
@@ -144,6 +146,11 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
                 maxLength={6}
               />
             </div>
+             {isDevMode && generatedOtp && (
+              <div className="text-center text-sm text-muted-foreground bg-muted p-2 rounded-md">
+                Demo OTP: <span className="font-bold text-foreground">{generatedOtp}</span>
+              </div>
+            )}
             <div className="flex flex-col gap-2">
               <Button onClick={handleLogin} className="w-full" disabled={!otp || isPending}>
                  {isPending ? <Loader2 className="animate-spin" /> : 'Verify & Login'}
