@@ -41,17 +41,12 @@ const sendOtpFlow = ai.defineFlow(
     const authToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
-    if (!accountSid || !authToken || !twilioPhoneNumber) {
-      console.error('Twilio environment variables are not set. Running in development mode.');
-      // Fallback for development if .env.local is not set up
-      console.log(`(Development) Pretending to send OTP: ${otp} to ${to}`);
+    if (!accountSid || !authToken || !twilioPhoneNumber || accountSid.startsWith('ACxxx')) {
+      console.log('----------------------------------------------------');
+      console.log('--- Twilio is in development mode. ---');
+      console.log(`--- OTP for ${to}: ${otp} ---`);
+      console.log('----------------------------------------------------');
       return { success: true };
-    }
-    
-    // For development, log to console instead of sending SMS if keys are example ones
-    if (accountSid.startsWith('ACxxx')) {
-        console.log(`(Development) Pretending to send OTP: ${otp} to ${to}`);
-        return { success: true };
     }
 
     const client = new Twilio(accountSid, authToken);
