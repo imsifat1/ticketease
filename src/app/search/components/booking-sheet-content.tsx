@@ -111,15 +111,15 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         </div>
         
         {/* Progress Steps */}
-        <div className="flex items-center w-full">
+        <div className="flex items-center w-full pt-8">
             <div className="flex items-center text-primary relative">
                 <div className="rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center bg-primary text-primary-foreground">1</div>
-                <div className="absolute top-0 -ml-10 text-center mt-16 w-32 text-xs font-medium uppercase text-primary">Select Seats</div>
+                <div className="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase text-primary">Select Seats</div>
             </div>
             <div className={cn("flex-auto border-t-2 transition duration-500 ease-in-out", step > 1 ? "border-primary" : "border-gray-300")}></div>
             <div className="flex items-center text-gray-500 relative">
                 <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", step > 1 ? "bg-primary text-primary-foreground" : "bg-gray-300")}>2</div>
-                <div className={cn("absolute top-0 -ml-10 text-center mt-16 w-32 text-xs font-medium uppercase", step > 1 ? "text-primary" : "text-gray-500")}>Pickup Point</div>
+                <div className={cn("absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase", step > 1 ? "text-primary" : "text-gray-500")}>Pickup Point</div>
             </div>
         </div>
 
@@ -152,7 +152,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         )}
 
         {step === 2 && (
-          <div>
+          <div className="mt-8">
             <h3 className="text-lg font-semibold mb-4">Select Your Pickup Point</h3>
             <RadioGroup value={selectedPickupPoint} onValueChange={setSelectedPickupPoint} className="space-y-2">
               {route.pickupPoints.map((point) => (
