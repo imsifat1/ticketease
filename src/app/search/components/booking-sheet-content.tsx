@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
-import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import PassengerDetailsForm from './passenger-details-form';
 
 interface BookingSheetContentProps {
   route: BusRoute;
@@ -28,9 +29,10 @@ interface BookingSheetContentProps {
 
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
+  const [passengers, setPassengers] = useState<any[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
-  const [step, setStep] = useState(1); // 1: seat, 2: pickup
+  const [step, setStep] = useState(1); // 1: seat, 2: pickup, 3: summary
   const { toast } = useToast();
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
@@ -58,15 +60,21 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleProceedToPickup = () => {
     if (step === 1 && selectedSeats.length > 0) {
+      // Initialize passenger data
+      setPassengers(selectedSeats.map(seat => ({ seatId: seat, name: '', gender: '' })));
       setStep(2);
     }
   };
+  
+  const handleProceedToSummary = () => {
+    if (step === 2 && selectedPickupPoint) {
+      setStep(3);
+    }
+  }
 
   const handleConfirmBooking = () => {
-    if (step === 2 && selectedPickupPoint) {
-       // In a real app, this would involve a payment gateway
-      setIsBookingConfirmed(true);
-    }
+    // In a real app, this would involve a payment gateway and form validation
+    setIsBookingConfirmed(true);
   };
 
   const totalPrice = selectedSeats.length * route.price;
@@ -98,6 +106,18 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     );
   };
 
+  const getStepClass = (stepNumber: number, baseClass: string) => {
+    if (step < stepNumber) return `${baseClass} text-gray-500`;
+    if (step === stepNumber) return `${baseClass} text-primary`;
+    return `${baseClass} text-green-600`; // Completed step
+  };
+
+  const getStepDivClass = (stepNumber: number) => {
+      if (step < stepNumber) return "bg-gray-300";
+      if (step === stepNumber) return "bg-primary text-primary-foreground";
+      return "bg-green-600 text-primary-foreground";
+  }
+
   return (
     <>
       <div className="p-4 space-y-8">
@@ -118,14 +138,19 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         
         {/* Progress Steps */}
         <div className="flex items-center w-full pt-8">
-            <div className="flex items-center text-primary relative">
-                <div className="rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center bg-primary text-primary-foreground">1</div>
-                <div className="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase text-primary">Select Seats</div>
+            <div className={getStepClass(1, "flex items-center relative")}>
+                <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", getStepDivClass(1))}>1</div>
+                <div className="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase">Select Seats</div>
             </div>
             <div className={cn("flex-auto border-t-2 transition duration-500 ease-in-out", step > 1 ? "border-primary" : "border-gray-300")}></div>
-            <div className="flex items-center text-gray-500 relative">
-                <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", step > 1 ? "bg-primary text-primary-foreground" : "bg-gray-300")}>2</div>
-                <div className={cn("absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase", step > 1 ? "text-primary" : "text-gray-500")}>Pickup Point</div>
+            <div className={getStepClass(2, "flex items-center relative")}>
+                <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", getStepDivClass(2))}>2</div>
+                <div className="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase">Pickup Point</div>
+            </div>
+            <div className={cn("flex-auto border-t-2 transition duration-500 ease-in-out", step > 2 ? "border-primary" : "border-gray-300")}></div>
+            <div className={getStepClass(3, "flex items-center relative")}>
+                <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", getStepDivClass(3))}>3</div>
+                <div className="absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase">Summary</div>
             </div>
         </div>
 
@@ -176,6 +201,18 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             </RadioGroup>
           </div>
         )}
+
+        {step === 3 && (
+            <div className="mt-16 pt-4">
+                 <PassengerDetailsForm
+                    route={route}
+                    selectedSeats={selectedSeats}
+                    pickupPoint={selectedPickupPoint}
+                    passengers={passengers}
+                    setPassengers={setPassengers}
+                 />
+            </div>
+        )}
         
         <div className="mt-8 pt-4 border-t sticky bottom-0 bg-background py-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -185,8 +222,8 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             </div>
             <div className="flex items-center gap-4">
                 <div>
-                <p className="text-sm text-muted-foreground text-right">Total Price</p>
-                <p className="font-bold text-2xl text-primary">BDT {totalPrice.toLocaleString()}</p>
+                  <p className="text-sm text-muted-foreground text-right">Total Price</p>
+                  <p className="font-bold text-2xl text-primary">BDT {totalPrice.toLocaleString()}</p>
                 </div>
                 {step === 1 && (
                     <Button size="lg" disabled={selectedSeats.length === 0} onClick={handleProceedToPickup}>
@@ -198,9 +235,19 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                     <Button variant="outline" size="lg" onClick={() => setStep(1)}>
                         <ArrowLeft className="mr-2 h-4 w-4" /> Back
                     </Button>
-                    <Button size="lg" disabled={!selectedPickupPoint} onClick={handleConfirmBooking}>
-                        Confirm Booking
+                    <Button size="lg" disabled={!selectedPickupPoint} onClick={handleProceedToSummary}>
+                        Proceed to Summary
                     </Button>
+                   </div>
+                )}
+                {step === 3 && (
+                     <div className="flex items-center gap-2">
+                        <Button variant="outline" size="lg" onClick={() => setStep(2)}>
+                            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                        </Button>
+                        <Button size="lg" onClick={handleConfirmBooking}>
+                            Confirm Booking
+                        </Button>
                    </div>
                 )}
             </div>
