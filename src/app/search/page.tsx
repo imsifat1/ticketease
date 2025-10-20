@@ -129,7 +129,11 @@ function SearchResults() {
                 </div>
                 <div className="md:hidden">
                     <SidebarTrigger asChild>
-                        <Button variant="outline"><SlidersHorizontal className="mr-2" /> Filters</Button>
+                        <Button variant="outline">
+                          <span>
+                            <SlidersHorizontal className="mr-2" /> Filters
+                          </span>
+                        </Button>
                     </SidebarTrigger>
                 </div>
               </div>
