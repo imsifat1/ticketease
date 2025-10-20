@@ -162,7 +162,7 @@ export default function InvoicePage() {
   }
 
   return (
-    <div className="bg-muted min-h-screen py-8 print-container">
+    <div className="bg-muted min-h-screen py-8">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto mb-4 flex justify-between items-center no-print">
             <Button variant="outline" onClick={() => router.back()}>
