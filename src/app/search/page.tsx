@@ -340,7 +340,7 @@ function SearchResults() {
       />
 
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="w-full sm:max-w-xl lg:max-w-2xl overflow-y-auto">
+        <SheetContent className="w-full sm:max-w-2xl lg:max-w-4xl overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Complete Your Booking</SheetTitle>
           </SheetHeader>
