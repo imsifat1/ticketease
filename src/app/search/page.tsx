@@ -66,11 +66,13 @@ function SearchResults() {
       });
     }
     
-    // For now, bus class is not in the data, so this won't do anything yet.
-    // I can add this data later if you'd like.
+    // Class Filter
+    if (classFilters.size > 0) {
+      routes = routes.filter(route => classFilters.has(route.class));
+    }
 
     return routes;
-  }, [from, to, priceSort, timeFilters]);
+  }, [from, to, priceSort, timeFilters, classFilters]);
 
   const handleRouteSelect = (route: BusRoute) => {
     setSelectedRoute(route);
@@ -79,6 +81,18 @@ function SearchResults() {
   
   const handleTimeFilterChange = (filter: TimeFilter) => {
     setTimeFilters(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(filter)) {
+        newSet.delete(filter);
+      } else {
+        newSet.add(filter);
+      }
+      return newSet;
+    });
+  };
+  
+  const handleClassFilterChange = (filter: ClassFilter) => {
+    setClassFilters(prev => {
       const newSet = new Set(prev);
       if (newSet.has(filter)) {
         newSet.delete(filter);
@@ -100,7 +114,7 @@ function SearchResults() {
              timeFilters={timeFilters}
              onTimeFilterChange={handleTimeFilterChange}
              classFilters={classFilters}
-             onClassFilterChange={() => {}}
+             onClassFilterChange={handleClassFilterChange}
             />
         </Sidebar>
         <SidebarInset>
@@ -129,11 +143,11 @@ function SearchResults() {
                 </div>
                 <div className="md:hidden">
                     <SidebarTrigger asChild>
-                        <Button variant="outline">
-                          <span>
-                            <SlidersHorizontal className="mr-2" /> Filters
-                          </span>
-                        </Button>
+                      <Button variant="outline">
+                        <span>
+                          <SlidersHorizontal className="mr-2" /> Filters
+                        </span>
+                      </Button>
                     </SidebarTrigger>
                 </div>
               </div>

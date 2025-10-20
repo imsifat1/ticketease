@@ -1,7 +1,6 @@
 "use client";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -89,9 +88,8 @@ export default function FilterSidebar({
                     id={option.id} 
                     checked={classFilters.has(option.id)}
                     onCheckedChange={() => onClassFilterChange(option.id)}
-                    disabled // Disabled until data is available
                   />
-                  <Label htmlFor={option.id} className="font-normal text-muted-foreground has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-70">{option.label}</Label>
+                  <Label htmlFor={option.id} className="font-normal">{option.label}</Label>
                 </div>
               ))}
             </div>

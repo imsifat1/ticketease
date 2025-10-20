@@ -1,3 +1,5 @@
+import type { ClassFilter } from "@/app/search/page";
+
 export type SeatStatus = 'available' | 'booked' | 'selected';
 
 export type Seat = {
@@ -16,6 +18,7 @@ export type BusRoute = {
   price: number;
   rating: number;
   amenities: string[];
+  class: ClassFilter;
   seatLayout: {
     rows: string[][];
     booked: string[];

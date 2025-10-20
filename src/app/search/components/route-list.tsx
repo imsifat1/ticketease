@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight, Clock, Star, Wifi, Zap, Wind, Armchair } from 'lucide-react';
 import type { BusRoute } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
+import type { ClassFilter } from '../page';
 
 interface RouteListProps {
   routes: BusRoute[];
@@ -20,6 +21,13 @@ const AmenityIcon = ({ amenity }: { amenity: string }) => {
     default:
       return null;
   }
+};
+
+const classLabels: Record<ClassFilter, string> = {
+  'non-ac': 'Non-AC',
+  'ac-seater': 'AC Seater',
+  'sleeper-ac': 'Sleeper Coach AC',
+  'business-ac': 'AC Business Class',
 };
 
 export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
@@ -44,7 +52,8 @@ export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
               <div className="md:col-span-3">
                 <h3 className="font-bold text-lg">{route.operator}</h3>
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground">{classLabels[route.class]}</p>
+                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
                   <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                   <span>{route.rating}</span>
                 </div>
