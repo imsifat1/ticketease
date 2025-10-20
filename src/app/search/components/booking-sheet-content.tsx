@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock, Lock, Mail } from 'lucide-react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock, Phone, Smartphone } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -32,32 +32,21 @@ function LoginForm({ onLoginSuccess }: { onLoginSuccess: () => void }) {
   return (
     <Card className="border-none shadow-none">
       <CardHeader className="text-center px-0">
-        <CardTitle>Welcome Back</CardTitle>
-        <CardDescription>Please sign in to complete your booking.</CardDescription>
+        <CardTitle>Login with Mobile</CardTitle>
+        <CardDescription>Please enter your mobile number to receive an OTP.</CardDescription>
       </CardHeader>
       <CardContent className="px-0 space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="mobile">Mobile Number</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input id="email" type="email" placeholder="you@example.com" className="pl-10" />
+            <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input id="mobile" type="tel" placeholder="+8801..." className="pl-10" />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-           <div className="relative">
-             <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input id="password" type="password" placeholder="••••••••" className="pl-10" />
-          </div>
-        </div>
+        
         <Button onClick={onLoginSuccess} className="w-full">
-          Login & Confirm Booking
+          Get OTP & Confirm Booking
         </Button>
-        <div className="text-center text-sm">
-          <a href="#" className="text-primary hover:underline">
-            Forgot Password?
-          </a>
-        </div>
       </CardContent>
     </Card>
   )
@@ -72,8 +61,10 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
-    
-    if (selectedSeats.length >= 4 && !selectedSeats.includes(seatId)) {
+
+    const isCurrentlySelected = selectedSeats.includes(seatId);
+
+    if (selectedSeats.length >= 4 && !isCurrentlySelected) {
         toast({
           title: 'Seat limit reached',
           description: 'You can select a maximum of 4 seats.',
@@ -83,7 +74,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     }
 
     setSelectedSeats((prev) => {
-      const isCurrentlySelected = prev.includes(seatId);
       if (isCurrentlySelected) {
         return prev.filter((s) => s !== seatId);
       } else {
