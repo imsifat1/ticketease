@@ -17,12 +17,11 @@ import {
 
 
 const Header = () => {
-  const { isLoggedIn, logout } = useContext(AuthContext);
+  const { isLoggedIn, logout, setLoginDialogOpen } = useContext(AuthContext);
   const router = useRouter();
 
   const handleLoginClick = () => {
-    // Navigate to the search page with a query param to open the login dialog
-    router.push('/search?login=true');
+    setLoginDialogOpen(true);
   };
 
   return (

@@ -173,8 +173,7 @@ function SearchResults() {
   const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   
-  const { isLoggedIn, login } = useContext(AuthContext);
-  const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
+  const { isLoggedIn, login, isLoginDialogOpen, setLoginDialogOpen } = useContext(AuthContext);
   const [pendingRoute, setPendingRoute] = useState<BusRoute | null>(null);
   const { toast } = useToast();
 
@@ -187,10 +186,10 @@ function SearchResults() {
   useEffect(() => {
     if (searchParams.get('login') === 'true') {
       if (!isLoggedIn) {
-        setIsLoginDialogOpen(true);
+        setLoginDialogOpen(true);
       }
     }
-  }, [searchParams, isLoggedIn]);
+  }, [searchParams, isLoggedIn, setLoginDialogOpen]);
 
 
   const from = searchParams.get('from');
@@ -242,7 +241,7 @@ function SearchResults() {
       setIsSheetOpen(true);
     } else {
       setPendingRoute(route);
-      setIsLoginDialogOpen(true);
+      setLoginDialogOpen(true);
     }
   };
 
@@ -252,7 +251,7 @@ function SearchResults() {
       title: 'Login Successful!',
       description: 'You can now proceed with your booking.',
     });
-    setIsLoginDialogOpen(false);
+    setLoginDialogOpen(false);
     if (pendingRoute) {
       setSelectedRoute(pendingRoute);
       setIsSheetOpen(true);
@@ -344,7 +343,7 @@ function SearchResults() {
 
       <LoginDialog
         open={isLoginDialogOpen}
-        onOpenChange={setIsLoginDialogOpen}
+        onOpenChange={setLoginDialogOpen}
         onLoginSuccess={handleLoginSuccess}
       />
 
