@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Armchair, X, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
