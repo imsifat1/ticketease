@@ -35,21 +35,21 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
 
-    setSelectedSeats((prev) => {
-      const isCurrentlySelected = prev.includes(seatId);
-      if (isCurrentlySelected) {
-        return prev.filter((s) => s !== seatId);
-      }
-      if (prev.length >= 4) {
+    const isCurrentlySelected = selectedSeats.includes(seatId);
+
+    if (isCurrentlySelected) {
+      setSelectedSeats((prev) => prev.filter((s) => s !== seatId));
+    } else {
+      if (selectedSeats.length >= 4) {
         toast({
           title: 'Seat limit reached',
           description: 'You can select a maximum of 4 seats.',
           variant: 'destructive',
         });
-        return prev;
+        return;
       }
-      return [...prev, seatId];
-    });
+      setSelectedSeats((prev) => [...prev, seatId]);
+    }
   };
 
   const handleProceed = () => {
@@ -124,7 +124,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         </div>
 
         {step === 1 && (
-          <div className="mt-8 pt-4">
+          <div className="mt-16 pt-4">
             <h3 className="text-lg font-semibold mb-4">Select Your Seats</h3>
             <div className="flex justify-center gap-4 mb-6 text-sm">
                 <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border-2 bg-background border-gray-400" /> Available</div>
@@ -152,7 +152,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         )}
 
         {step === 2 && (
-          <div className="mt-8 pt-4">
+          <div className="mt-16 pt-4">
             <h3 className="text-lg font-semibold mb-4">Select Your Pickup Point</h3>
             <RadioGroup value={selectedPickupPoint} onValueChange={setSelectedPickupPoint} className="space-y-2">
               {route.pickupPoints.map((point) => (
