@@ -14,7 +14,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 
 const passengerSchema = z.object({
   seatId: z.string(),
-  name: z.string().min(1, { message: 'Passenger name is required.' }),
+  name: z.string().optional(),
   gender: z.string().optional(),
 });
 
@@ -141,7 +141,7 @@ const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDet
                         name={`passengers.${index}.name`}
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Full Name</FormLabel>
+                            <FormLabel>Full Name (optional)</FormLabel>
                             <FormControl>
                               <Input placeholder="Passenger's name" {...field} />
                             </FormControl>
