@@ -45,9 +45,10 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         const timestamp = parseInt(storedTimestamp, 10);
         if (timestamp > Date.now()) {
             setExpiryTimestamp(timestamp);
-            setStep(3); // Assume if timer is running, user was at summary
-            // You might want to restore selectedSeats and pickupPoint from localStorage as well if you want full persistence
+            // Logic to restore state can be added here if needed
+            // For now, it just respects the running timer
         } else {
+            // Timer expired while the component was unmounted
             localStorage.removeItem(TIMER_KEY);
         }
     }
@@ -55,6 +56,16 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
+
+    // Cannot change seats if timer is running
+    if (expiryTimestamp) {
+        toast({
+            title: 'Booking in Progress',
+            description: 'You cannot change seats while your booking session is active.',
+            variant: 'destructive',
+        });
+        return;
+    }
 
     const isCurrentlySelected = selectedSeats.includes(seatId);
 
@@ -77,9 +88,12 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
   };
 
   const startTimer = () => {
-    const newExpiryTimestamp = Date.now() + 4 * 60 * 1000;
-    localStorage.setItem(TIMER_KEY, newExpiryTimestamp.toString());
-    setExpiryTimestamp(newExpiryTimestamp);
+    // Only start a new timer if one isn't already running
+    if (!expiryTimestamp) {
+        const newExpiryTimestamp = Date.now() + 4 * 60 * 1000;
+        localStorage.setItem(TIMER_KEY, newExpiryTimestamp.toString());
+        setExpiryTimestamp(newExpiryTimestamp);
+    }
   };
 
   const clearTimer = () => {
@@ -102,16 +116,31 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleProceedToPickup = () => {
     if (step === 1 && selectedSeats.length > 0) {
+      startTimer();
       setStep(2);
     }
   };
 
   const handleProceedToSummary = () => {
     if (step === 2 && selectedPickupPoint) {
-      startTimer();
       setStep(3);
     }
   };
+
+  const handleGoBackFromSummary = () => {
+    setStep(2);
+    // Do not clear the timer here
+  }
+
+  const handleGoBackFromPickup = () => {
+    setStep(1);
+    // When going back to seat selection, we should stop the timer and release seats conceptually
+    clearTimer();
+    toast({
+        title: 'Booking Timer Cancelled',
+        description: 'You can now change your seat selection.',
+    });
+  }
 
   const handleConfirmBooking = async () => {
     if (passengerFormRef.current) {
@@ -142,6 +171,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             'bg-muted border-gray-300 cursor-not-allowed': status === 'booked',
             'bg-background hover:bg-accent border-gray-400': status === 'available',
             'bg-primary text-primary-foreground border-primary': status === 'selected',
+            'cursor-not-allowed hover:bg-primary': expiryTimestamp && status === 'selected'
           }
         )}
         aria-label={`Seat ${id}, ${status}`}
@@ -279,7 +309,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                 )}
                  {step === 2 && (
                    <div className="flex items-center gap-2">
-                    <Button variant="outline" size="lg" onClick={() => setStep(1)}>
+                    <Button variant="outline" size="lg" onClick={handleGoBackFromPickup}>
                         <ArrowLeft className="mr-2 h-4 w-4" /> Back
                     </Button>
                     <Button size="lg" disabled={!selectedPickupPoint} onClick={handleProceedToSummary}>
@@ -289,7 +319,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                 )}
                 {step === 3 && (
                      <div className="flex items-center gap-2">
-                        <Button variant="outline" size="lg" onClick={() => { setStep(2); clearTimer(); }}>
+                        <Button variant="outline" size="lg" onClick={handleGoBackFromSummary}>
                             <ArrowLeft className="mr-2 h-4 w-4" /> Back
                         </Button>
                         <Button size="lg" onClick={handleConfirmBooking}>
@@ -320,5 +350,3 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     </>
   );
 }
-
-    
