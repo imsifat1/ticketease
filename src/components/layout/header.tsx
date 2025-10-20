@@ -1,8 +1,23 @@
+"use client";
+
 import Link from 'next/link';
-import { Bus, Ship, Hotel, Zap, Phone } from 'lucide-react';
+import { Bus, Ship, Hotel, Zap, Phone, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useContext } from 'react';
+import { AuthContext } from '@/context/auth-context';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 
 const Header = () => {
+  const { isLoggedIn, logout } = useContext(AuthContext);
+
   return (
     <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between">
@@ -35,12 +50,36 @@ const Header = () => {
             <Phone className="w-4 h-4 mr-2" />
             Hotline: 16374
           </Button>
-          <Button variant="warning">
-            My Bookings
-          </Button>
-          <Button variant="outline">
-            Login
-          </Button>
+          {isLoggedIn && (
+            <Button variant="warning">
+              My Bookings
+            </Button>
+          )}
+          {isLoggedIn ? (
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                    <User className="w-5 h-5" />
+                    <span>My Account</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>User Name</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>Profile</DropdownMenuItem>
+                <DropdownMenuItem>My Tickets</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline">
+              Login
+            </Button>
+          )}
         </div>
       </div>
     </header>

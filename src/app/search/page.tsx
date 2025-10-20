@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo, useTransition } from 'react';
+import { Suspense, useState, useMemo, useTransition, useContext } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, parse, parseISO } from 'date-fns';
 import { ArrowRight, Calendar, SlidersHorizontal, User, Loader2 } from 'lucide-react';
@@ -19,6 +19,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
+import { AuthContext } from '@/context/auth-context';
 
 export type PriceSort = 'low-to-high' | 'high-to-low' | '';
 export type TimeFilter = 'early-morning' | 'morning' | 'afternoon' | 'evening' | 'night';
@@ -171,12 +172,11 @@ function SearchResults() {
   const searchParams = useSearchParams();
   const [selectedRoute, setSelectedRoute] = useState<BusRoute | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-
-  // --- Mock Auth State ---
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
+  const { isLoggedIn, login } = useContext(AuthContext);
   const [isLoginDialogOpen, setIsLoginDialogOpen] = useState(false);
   const [pendingRoute, setPendingRoute] = useState<BusRoute | null>(null);
-  // -----------------------
+  const { toast } = useToast();
 
   // Filter states
   const [priceSort, setPriceSort] = useState<PriceSort>('');
@@ -238,7 +238,11 @@ function SearchResults() {
   };
 
   const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+    login(); // Use context login function
+    toast({
+      title: 'Login Successful!',
+      description: 'You can now proceed with your booking.',
+    });
     setIsLoginDialogOpen(false);
     if (pendingRoute) {
       setSelectedRoute(pendingRoute);
@@ -310,12 +314,6 @@ function SearchResults() {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                   {isLoggedIn && (
-                    <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                      <User className="w-5 h-5" />
-                      <span>Logged In</span>
-                    </div>
-                  )}
                   <div className="md:hidden">
                       <SidebarTrigger asChild>
                         <Button variant="outline">
