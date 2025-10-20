@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useState, useMemo } from 'react';
+import { Suspense, useState, useMemo, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, parse, parseISO } from 'date-fns';
-import { ArrowRight, Calendar, SlidersHorizontal, User } from 'lucide-react';
+import { ArrowRight, Calendar, SlidersHorizontal, User, Loader2 } from 'lucide-react';
 
 import RouteList from './components/route-list';
 import { mockBusRoutes } from '@/lib/mock-data';
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import { sendOtp } from '@/ai/flows/send-otp-flow';
 
 export type PriceSort = 'low-to-high' | 'high-to-low' | '';
 export type TimeFilter = 'early-morning' | 'morning' | 'afternoon' | 'evening' | 'night';
@@ -27,6 +28,9 @@ export type ClassFilter = 'non-ac' | 'ac-seater' | 'sleeper-ac' | 'business-ac';
 function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onLoginSuccess: () => void }) {
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
   const [mobileNumber, setMobileNumber] = useState('');
+  const [otp, setOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
   const handleOpenChange = (isOpen: boolean) => {
@@ -36,6 +40,8 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
       setTimeout(() => {
         setStep('mobile');
         setMobileNumber('');
+        setOtp('');
+        setGeneratedOtp('');
       }, 300);
     }
   };
@@ -50,13 +56,45 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
       });
       return;
     }
-    // In a real app, you would send an OTP here.
-    setStep('otp');
+    
+    startTransition(async () => {
+        // Generate a 6-digit OTP
+        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedOtp(newOtp);
+
+        // Twilio expects E.164 format, so we'll prepend +88
+        const formattedNumber = `+88${mobileNumber}`;
+
+        const result = await sendOtp({ to: formattedNumber, otp: newOtp });
+
+        if (result.success) {
+            toast({
+                title: 'OTP Sent',
+                description: 'An OTP has been sent to your mobile number.',
+            });
+            setStep('otp');
+        } else {
+            toast({
+                title: 'Failed to Send OTP',
+                description: result.error || 'Please try again later.',
+                variant: 'destructive',
+            });
+        }
+    });
   };
 
   const handleLogin = () => {
-    // In a real app, you would verify the OTP here.
-    onLoginSuccess();
+    // In a real app, you would verify the OTP here against a server-side value.
+    // For now, we'll just check against the one we "sent".
+    if (otp === generatedOtp) {
+        onLoginSuccess();
+    } else {
+        toast({
+            title: 'Invalid OTP',
+            description: 'The OTP you entered is incorrect. Please try again.',
+            variant: 'destructive',
+        });
+    }
   };
 
   return (
@@ -86,8 +124,8 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
                 maxLength={11}
               />
             </div>
-            <Button onClick={handleSendOtp} className="w-full" disabled={!mobileNumber}>
-              Send OTP
+            <Button onClick={handleSendOtp} className="w-full" disabled={!mobileNumber || isPending}>
+              {isPending ? <Loader2 className="animate-spin" /> : 'Send OTP'}
             </Button>
           </div>
         ) : (
@@ -96,11 +134,19 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
               <Label htmlFor="otp" className="text-right">
                 OTP
               </Label>
-              <Input id="otp" type="text" placeholder="123456" className="col-span-3" />
+              <Input 
+                id="otp" 
+                type="text" 
+                placeholder="123456" 
+                className="col-span-3"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                maxLength={6}
+              />
             </div>
             <div className="flex flex-col gap-2">
-              <Button onClick={handleLogin} className="w-full">
-                Verify & Login
+              <Button onClick={handleLogin} className="w-full" disabled={!otp || isPending}>
+                 {isPending ? <Loader2 className="animate-spin" /> : 'Verify & Login'}
               </Button>
               <Button variant="link" size="sm" onClick={() => setStep('mobile')} className="text-muted-foreground">
                 Change mobile number
@@ -332,5 +378,3 @@ export default function SearchPage() {
     </Suspense>
   );
 }
-
-    
