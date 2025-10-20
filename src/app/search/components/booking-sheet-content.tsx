@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock, Phone, Smartphone } from 'lucide-react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,8 +18,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface BookingSheetContentProps {
   route: BusRoute;
@@ -27,36 +25,12 @@ interface BookingSheetContentProps {
   onClose: () => void;
 }
 
-function LoginForm({ onLoginSuccess }: { onLoginSuccess: () => void }) {
-  // In a real app, you'd use form state and validation
-  return (
-    <Card className="border-none shadow-none">
-      <CardHeader className="text-center px-0">
-        <CardTitle>Login with Mobile</CardTitle>
-        <CardDescription>Please enter your mobile number to receive an OTP.</CardDescription>
-      </CardHeader>
-      <CardContent className="px-0 space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="mobile">Mobile Number</Label>
-          <div className="relative">
-            <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input id="mobile" type="tel" placeholder="+8801..." className="pl-10" />
-          </div>
-        </div>
-        
-        <Button onClick={onLoginSuccess} className="w-full">
-          Get OTP & Confirm Booking
-        </Button>
-      </CardContent>
-    </Card>
-  )
-}
 
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
-  const [step, setStep] = useState(1); // 1: seat, 2: pickup, 3: login
+  const [step, setStep] = useState(1); // 1: seat, 2: pickup
   const { toast } = useToast();
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
@@ -82,7 +56,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     });
   };
 
-  const handleProceed = () => {
+  const handleProceedToPickup = () => {
     if (step === 1 && selectedSeats.length > 0) {
       setStep(2);
     }
@@ -90,14 +64,10 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleConfirmBooking = () => {
     if (step === 2 && selectedPickupPoint) {
-      setStep(3); // Go to login step
+       // In a real app, this would involve a payment gateway
+      setIsBookingConfirmed(true);
     }
   };
-
-  const handleLoginSuccess = () => {
-    // In a real app, this would involve a payment gateway after successful login
-    setIsBookingConfirmed(true);
-  }
 
   const totalPrice = selectedSeats.length * route.price;
 
@@ -157,11 +127,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                 <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", step > 1 ? "bg-primary text-primary-foreground" : "bg-gray-300")}>2</div>
                 <div className={cn("absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase", step > 1 ? "text-primary" : "text-gray-500")}>Pickup Point</div>
             </div>
-             <div className={cn("flex-auto border-t-2 transition duration-500 ease-in-out", step > 2 ? "border-primary" : "border-gray-300")}></div>
-            <div className="flex items-center text-gray-500 relative">
-                <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", step > 2 ? "bg-primary text-primary-foreground" : "bg-gray-300")}>3</div>
-                <div className={cn("absolute top-0 -ml-10 text-center mt-10 w-32 text-xs font-medium uppercase", step > 2 ? "text-primary" : "text-gray-500")}>Login</div>
-            </div>
         </div>
 
         {step === 1 && (
@@ -212,12 +177,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
           </div>
         )}
         
-        {step === 3 && (
-            <div className="mt-16 pt-4">
-                <LoginForm onLoginSuccess={handleLoginSuccess} />
-            </div>
-        )}
-
         <div className="mt-8 pt-4 border-t sticky bottom-0 bg-background py-4">
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-left">
@@ -230,7 +189,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                 <p className="font-bold text-2xl text-primary">BDT {totalPrice.toLocaleString()}</p>
                 </div>
                 {step === 1 && (
-                    <Button size="lg" disabled={selectedSeats.length === 0} onClick={handleProceed}>
+                    <Button size="lg" disabled={selectedSeats.length === 0} onClick={handleProceedToPickup}>
                         Proceed
                     </Button>
                 )}
@@ -244,11 +203,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                     </Button>
                    </div>
                 )}
-                {step === 3 && (
-                   <Button variant="outline" size="lg" onClick={() => setStep(2)}>
-                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                    </Button>
-                )}
             </div>
             </div>
         </div>
@@ -259,7 +213,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
           <AlertDialogHeader>
             <AlertDialogTitle>Booking Successful!</AlertDialogTitle>
             <AlertDialogDescription>
-              Your tickets for {selectedSeats.join(', ')} from {selectedPickupPoint} have been confirmed. An e-ticket has been sent to your email.
+              Your tickets for {selectedSeats.join(', ')} from {selectedPickupPoint} have been confirmed. An e-ticket has been sent to your mobile number.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
