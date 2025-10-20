@@ -10,20 +10,27 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { Twilio } from 'twilio';
 
-export const SendOtpInputSchema = z.object({
-  to: z.string().describe('The recipient\'s phone number in E.164 format.'),
-  otp: z.string().describe('The One-Time Password to send.'),
-});
-export type SendOtpInput = z.infer<typeof SendOtpInputSchema>;
+// Define the input type for the client-side usage.
+export type SendOtpInput = {
+  to: string;
+  otp: string;
+};
 
+// This is the server action that will be called from the client.
 export async function sendOtp(input: SendOtpInput): Promise<{ success: boolean; error?: string }> {
   return sendOtpFlow(input);
 }
 
+
+// The Genkit flow is defined here and is not exported directly.
 const sendOtpFlow = ai.defineFlow(
   {
     name: 'sendOtpFlow',
-    inputSchema: SendOtpInputSchema,
+    // The Zod schema is now defined directly within the flow definition.
+    inputSchema: z.object({
+      to: z.string().describe("The recipient's phone number in E.164 format."),
+      otp: z.string().describe('The One-Time Password to send.'),
+    }),
     outputSchema: z.object({
         success: z.boolean(),
         error: z.string().optional(),
