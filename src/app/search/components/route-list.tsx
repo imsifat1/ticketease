@@ -77,12 +77,14 @@ export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
               </div>
 
               <div className="md:col-span-3 flex flex-col md:flex-row items-center justify-end gap-4">
-                <div className="text-right">
+                <div className="text-right flex-grow md:flex-grow-0">
                   <p className="text-xl font-bold text-primary">BDT {route.price}</p>
                   <p className="text-xs text-muted-foreground">per seat</p>
-                  <div className="flex items-center justify-end gap-1 text-sm font-medium mt-1">
-                    <Armchair className="w-4 h-4 text-primary" />
-                    <span>{availableSeats} seats available</span>
+                  <div className="flex items-center justify-end">
+                    <Badge variant="outline" className="mt-1 bg-accent border-primary/50 text-primary font-medium">
+                        <Armchair className="w-4 h-4 mr-1" />
+                        {availableSeats} seats available
+                    </Badge>
                   </div>
                 </div>
                 <Button onClick={() => onSelectRoute(route)} className="w-full md:w-auto">
