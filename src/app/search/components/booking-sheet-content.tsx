@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock, Info } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import PassengerDetailsForm from './passenger-details-form';
+import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
 
 interface BookingSheetContentProps {
   route: BusRoute;
@@ -26,14 +26,13 @@ interface BookingSheetContentProps {
   onClose: () => void;
 }
 
-
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
-  const [passengers, setPassengers] = useState<any[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
   const [step, setStep] = useState(1); // 1: seat, 2: pickup, 3: summary
   const { toast } = useToast();
+  const passengerFormRef = useRef<PassengerDetailsFormHandle>(null);
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
@@ -41,12 +40,12 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     const isCurrentlySelected = selectedSeats.includes(seatId);
 
     if (selectedSeats.length >= 4 && !isCurrentlySelected) {
-        toast({
-          title: 'Seat limit reached',
-          description: 'You can select a maximum of 4 seats.',
-          variant: 'destructive',
-        });
-        return;
+      toast({
+        title: 'Seat limit reached',
+        description: 'You can select a maximum of 4 seats.',
+        variant: 'destructive',
+      });
+      return;
     }
 
     setSelectedSeats((prev) => {
@@ -60,21 +59,24 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleProceedToPickup = () => {
     if (step === 1 && selectedSeats.length > 0) {
-      // Initialize passenger data
-      setPassengers(selectedSeats.map(seat => ({ seatId: seat, name: '', gender: '' })));
       setStep(2);
     }
   };
-  
+
   const handleProceedToSummary = () => {
     if (step === 2 && selectedPickupPoint) {
       setStep(3);
     }
-  }
+  };
 
-  const handleConfirmBooking = () => {
-    // In a real app, this would involve a payment gateway and form validation
-    setIsBookingConfirmed(true);
+  const handleConfirmBooking = async () => {
+    if (passengerFormRef.current) {
+      const isValid = await passengerFormRef.current.triggerValidation();
+      if (isValid) {
+        // In a real app, this would involve a payment gateway
+        setIsBookingConfirmed(true);
+      }
+    }
   };
 
   const totalPrice = selectedSeats.length * route.price;
@@ -113,10 +115,10 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
   };
 
   const getStepDivClass = (stepNumber: number) => {
-      if (step < stepNumber) return "bg-gray-300";
-      if (step === stepNumber) return "bg-primary text-primary-foreground";
-      return "bg-green-600 text-primary-foreground";
-  }
+    if (step < stepNumber) return "bg-gray-300";
+    if (step === stepNumber) return "bg-primary text-primary-foreground";
+    return "bg-green-600 text-primary-foreground";
+  };
 
   return (
     <>
@@ -136,7 +138,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
           </div>
         </div>
         
-        {/* Progress Steps */}
         <div className="flex items-center w-full pt-8">
             <div className={getStepClass(1, "flex items-center relative")}>
                 <div className={cn("rounded-full transition duration-500 ease-in-out h-8 w-8 text-lg flex items-center justify-center", getStepDivClass(1))}>1</div>
@@ -205,11 +206,10 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         {step === 3 && (
             <div className="mt-16 pt-4">
                  <PassengerDetailsForm
+                    ref={passengerFormRef}
                     route={route}
                     selectedSeats={selectedSeats}
                     pickupPoint={selectedPickupPoint}
-                    passengers={passengers}
-                    setPassengers={setPassengers}
                  />
             </div>
         )}
