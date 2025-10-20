@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft } from 'lucide-react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -124,7 +124,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         </div>
 
         {step === 1 && (
-          <div className="mt-8">
+          <div className="mt-8 pt-4">
             <h3 className="text-lg font-semibold mb-4">Select Your Seats</h3>
             <div className="flex justify-center gap-4 mb-6 text-sm">
                 <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border-2 bg-background border-gray-400" /> Available</div>
@@ -152,13 +152,19 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         )}
 
         {step === 2 && (
-          <div className="mt-8">
+          <div className="mt-8 pt-4">
             <h3 className="text-lg font-semibold mb-4">Select Your Pickup Point</h3>
             <RadioGroup value={selectedPickupPoint} onValueChange={setSelectedPickupPoint} className="space-y-2">
               {route.pickupPoints.map((point) => (
-                <Label key={point} htmlFor={point} className="flex items-center p-4 border rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
-                  <RadioGroupItem value={point} id={point} />
-                  <span className="ml-4 font-medium">{point}</span>
+                <Label key={point.name} htmlFor={point.name} className="flex items-center justify-between p-4 border rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
+                    <div className="flex items-center">
+                        <RadioGroupItem value={point.name} id={point.name} />
+                        <span className="ml-4 font-medium">{point.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="w-4 h-4" />
+                        <span>{point.time}</span>
+                    </div>
                 </Label>
               ))}
             </RadioGroup>

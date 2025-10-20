@@ -26,7 +26,11 @@ export const mockBusRoutes: BusRoute[] = [
       ],
       booked: ['A2', 'C3', 'C4', 'F1', 'G3'],
     },
-    pickupPoints: ['Gabtoli', 'Mohakhali', 'Abdullahpur'],
+    pickupPoints: [
+      { name: 'Gabtoli', time: '07:30 AM' },
+      { name: 'Mohakhali', time: '08:00 AM' },
+      { name: 'Abdullahpur', time: '08:30 AM' },
+    ],
   },
   {
     id: '2',
@@ -53,7 +57,10 @@ export const mockBusRoutes: BusRoute[] = [
       ],
       booked: ['B1', 'B2', 'D4', 'E2', 'H1', 'H2', 'H4'],
     },
-    pickupPoints: ['Kollanpur', 'Arambagh'],
+    pickupPoints: [
+      { name: 'Kollanpur', time: '10:00 PM' },
+      { name: 'Arambagh', time: '10:30 PM' },
+    ],
   },
   {
     id: '3',
@@ -78,7 +85,10 @@ export const mockBusRoutes: BusRoute[] = [
       ],
       booked: ['A1', 'A4', 'C2', 'D3'],
     },
-    pickupPoints: ['Gabtoli', 'Mohakhali'],
+    pickupPoints: [
+      { name: 'Gabtoli', time: '06:30 AM' },
+      { name: 'Mohakhali', time: '07:00 AM' },
+    ],
   },
   {
     id: '4',
@@ -104,7 +114,10 @@ export const mockBusRoutes: BusRoute[] = [
       ],
       booked: ['B3', 'C1', 'C2', 'E4', 'F2', 'G1'],
     },
-    pickupPoints: ['Kadamtali Bus Stand', 'Sobhani Ghat'],
+    pickupPoints: [
+      { name: 'Kadamtali Bus Stand', time: '01:30 PM' },
+      { name: 'Sobhani Ghat', time: '02:00 PM' },
+    ],
   },
   {
     id: '5',
@@ -131,7 +144,10 @@ export const mockBusRoutes: BusRoute[] = [
       ],
       booked: ['A3', 'B1', 'D2', 'D3', 'E1', 'G4', 'H2'],
     },
-    pickupPoints: ['Gabtoli', 'Savar'],
+    pickupPoints: [
+      { name: 'Gabtoli', time: '08:30 PM' },
+      { name: 'Savar', time: '09:00 PM' },
+    ],
   },
   {
     id: '6',
@@ -158,6 +174,9 @@ export const mockBusRoutes: BusRoute[] = [
       ],
       booked: ['A1', 'C1', 'C2', 'F4', 'G2'],
     },
-    pickupPoints: ['Kollanpur', 'Arambagh'],
+    pickupPoints: [
+      { name: 'Kollanpur', time: '08:30 AM' },
+      { name: 'Arambagh', time: '09:00 AM' },
+    ],
   },
 ];

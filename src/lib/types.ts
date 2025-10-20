@@ -7,6 +7,11 @@ export type Seat = {
   status: SeatStatus;
 };
 
+export type PickupPoint = {
+  name: string;
+  time: string;
+};
+
 export type BusRoute = {
   id: string;
   operator: string;
@@ -23,5 +28,5 @@ export type BusRoute = {
     rows: string[][];
     booked: string[];
   };
-  pickupPoints: string[];
+  pickupPoints: PickupPoint[];
 };
