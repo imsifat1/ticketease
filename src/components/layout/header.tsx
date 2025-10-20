@@ -5,6 +5,7 @@ import { Bus, Ship, Hotel, Zap, Phone, User, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useContext } from 'react';
 import { AuthContext } from '@/context/auth-context';
+import { useRouter } from 'next/navigation';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +18,12 @@ import {
 
 const Header = () => {
   const { isLoggedIn, logout } = useContext(AuthContext);
+  const router = useRouter();
+
+  const handleLoginClick = () => {
+    // Navigate to the search page with a query param to open the login dialog
+    router.push('/search?login=true');
+  };
 
   return (
     <header className="bg-background/80 backdrop-blur-sm sticky top-0 z-40 border-b">
@@ -67,7 +74,7 @@ const Header = () => {
                 <DropdownMenuLabel>User Name</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>
+                <DropdownMenuItem asChild>
                   <Link href="/my-bookings">My Tickets</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -78,7 +85,7 @@ const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline">
+            <Button variant="outline" onClick={handleLoginClick}>
               Login
             </Button>
           )}

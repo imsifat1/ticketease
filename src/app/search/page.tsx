@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useMemo, useTransition, useContext } from 'react';
+import { Suspense, useState, useMemo, useTransition, useContext, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { format, parse, parseISO } from 'date-fns';
 import { ArrowRight, Calendar, SlidersHorizontal, User, Loader2 } from 'lucide-react';
@@ -182,6 +182,15 @@ function SearchResults() {
   const [priceSort, setPriceSort] = useState<PriceSort>('');
   const [timeFilters, setTimeFilters] = useState<Set<TimeFilter>>(new Set());
   const [classFilters, setClassFilters] = useState<Set<ClassFilter>>(new Set());
+
+  // Check for login query param on initial render
+  useEffect(() => {
+    if (searchParams.get('login') === 'true') {
+      if (!isLoggedIn) {
+        setIsLoginDialogOpen(true);
+      }
+    }
+  }, [searchParams, isLoggedIn]);
 
 
   const from = searchParams.get('from');
