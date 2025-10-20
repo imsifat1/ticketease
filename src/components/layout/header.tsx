@@ -51,8 +51,8 @@ const Header = () => {
             Hotline: 16374
           </Button>
           {isLoggedIn && (
-            <Button variant="warning">
-              My Bookings
+            <Button asChild variant="warning">
+              <Link href="/my-bookings">My Bookings</Link>
             </Button>
           )}
           {isLoggedIn ? (
@@ -67,7 +67,9 @@ const Header = () => {
                 <DropdownMenuLabel>User Name</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>My Tickets</DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link href="/my-bookings">My Tickets</Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={logout} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
                   <LogOut className="mr-2 h-4 w-4" />
