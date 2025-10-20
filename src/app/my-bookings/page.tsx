@@ -19,7 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/componen
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import type { BusRoute } from '@/lib/types';
+import type { Booking } from '@/lib/types';
 import { mockBookings } from '@/lib/mock-data';
 
 
@@ -43,13 +43,12 @@ const statusColors: Record<BookingStatus, string> = {
 };
 
 
-const BookingCard = ({ booking }: { booking: (typeof mockBookings)[0] }) => {
+const BookingCard = ({ booking }: { booking: Booking }) => {
     const router = useRouter();
 
     const handleViewDetails = () => {
-        // Instead of relying on sessionStorage which can be unreliable,
-        // we will fetch the data on the invoice page from the mock source.
-        // This ensures the page works even on a hard refresh.
+        // Store in session storage to make sure the invoice page can find it,
+        // especially if it's not in the static mockBookings array (e.g. a new booking).
         sessionStorage.setItem(`booking-${booking.pnr}`, JSON.stringify(booking));
         router.push(`/invoice/${booking.pnr}`);
     }

@@ -10,11 +10,10 @@ import { Bus, Calendar, Clock, Armchair, User, Phone, Printer, ArrowLeft } from 
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { mockBookings } from '@/lib/mock-data';
+import type { Booking } from '@/lib/types';
 
-// This would typically be a more complex type from a DB
-type BookingDetails = any;
 
-const TicketDetails = ({ booking }: { booking: BookingDetails }) => {
+const TicketDetails = ({ booking }: { booking: Booking }) => {
   if (!booking) return null;
   
   const qrValue = JSON.stringify({
@@ -124,7 +123,7 @@ const TicketDetails = ({ booking }: { booking: BookingDetails }) => {
 export default function InvoicePage() {
   const params = useParams();
   const router = useRouter();
-  const [booking, setBooking] = useState<BookingDetails | null>(null);
+  const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
   const { pnr } = params;
 
@@ -135,18 +134,26 @@ export default function InvoicePage() {
     }
 
     let foundBooking = null;
+    // Try to get booking from session storage first. This is for newly created bookings.
     const bookingDataString = sessionStorage.getItem(`booking-${pnr}`);
     if (bookingDataString) {
-      foundBooking = JSON.parse(bookingDataString);
-    } else {
-      // If not in session storage, try finding it in the mock data
-      // This makes the "My Bookings" view details link work on hard refresh
-      foundBooking = mockBookings.find(b => b.pnr === pnr);
+      try {
+        foundBooking = JSON.parse(bookingDataString);
+      } catch (e) {
+        console.error("Failed to parse booking data from session storage", e);
+      }
+    }
+
+    // If not in session storage, try finding it in the mock data.
+    // This makes the "My Bookings" view details link work on hard refresh.
+    if (!foundBooking) {
+      foundBooking = mockBookings.find(b => b.pnr === pnr) || null;
     }
 
     if (foundBooking) {
       setBooking(foundBooking);
     } else {
+      // If still not found, then it's a 404
       notFound();
     }
     
@@ -175,10 +182,10 @@ export default function InvoicePage() {
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto mb-4 flex justify-between items-center no-print">
             <Button variant="outline" onClick={() => router.back()}>
-                <ArrowLeft className="mr-2" /> Back
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
             <Button onClick={handlePrint}>
-                <Printer className="mr-2" />
+                <Printer className="mr-2 h-4 w-4" />
                 Print Ticket
             </Button>
         </div>
