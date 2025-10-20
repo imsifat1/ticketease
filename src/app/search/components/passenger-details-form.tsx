@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef, useMemo } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -37,7 +37,8 @@ interface PassengerDetailsFormProps {
 }
 
 export interface PassengerDetailsFormHandle {
-  triggerValidation: () => Promise<boolean>;
+  triggerValidation: () => Promise<{ isValid: boolean, data: BookingFormValues | null }>;
+  getTotalAmount: () => number;
 }
 
 function Timer({ expiryTimestamp, onTimeout }: { expiryTimestamp: number, onTimeout: () => void }) {
@@ -75,11 +76,15 @@ function Timer({ expiryTimestamp, onTimeout }: { expiryTimestamp: number, onTime
 
 const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDetailsFormProps>(
   ({ route, selectedSeats, pickupPoint, expiryTimestamp, onTimeout }, ref) => {
-    const subtotal = route.price * selectedSeats.length;
-    const processingFee = subtotal * 0.025;
-    const discount = 200.00; // Example discount
-    const vat = (subtotal + processingFee - discount) * 0.05;
-    const totalAmount = subtotal + processingFee - discount + vat;
+
+    const fareDetails = useMemo(() => {
+        const subtotal = route.price * selectedSeats.length;
+        const processingFee = subtotal * 0.025;
+        const discount = 200.00; // Example discount
+        const vat = (subtotal + processingFee - discount) * 0.05;
+        const totalAmount = subtotal + processingFee - discount + vat;
+        return { subtotal, processingFee, discount, vat, totalAmount };
+    }, [route.price, selectedSeats.length]);
     
     const form = useForm<BookingFormValues>({
       resolver: zodResolver(bookingSchema),
@@ -97,7 +102,14 @@ const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDet
     });
     
     useImperativeHandle(ref, () => ({
-      triggerValidation: form.trigger,
+      triggerValidation: async () => {
+        const isValid = await form.trigger();
+        if (isValid) {
+            return { isValid: true, data: form.getValues() };
+        }
+        return { isValid: false, data: null };
+      },
+      getTotalAmount: () => fareDetails.totalAmount,
     }));
     
     return (
@@ -227,26 +239,26 @@ const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDet
                     </div>
                      <div className="flex justify-between">
                         <p>Subtotal</p>
-                        <p>৳{subtotal.toFixed(2)}</p>
+                        <p>৳{fareDetails.subtotal.toFixed(2)}</p>
                     </div>
                     <div className="flex justify-between">
                         <p>Processing Fee (2.5%)</p>
-                        <p>৳{processingFee.toFixed(2)}</p>
+                        <p>৳{fareDetails.processingFee.toFixed(2)}</p>
                     </div>
                      <div className="flex justify-between text-destructive">
                         <p>Discount</p>
-                        <p>- ৳{discount.toFixed(2)}</p>
+                        <p>- ৳{fareDetails.discount.toFixed(2)}</p>
                     </div>
                     <div className="flex justify-between">
                         <p>VAT (5%)</p>
-                        <p>৳{vat.toFixed(2)}</p>
+                        <p>৳{fareDetails.vat.toFixed(2)}</p>
                     </div>
                  </div>
                 <Separator />
               </CardContent>
               <CardFooter className="flex justify-between font-bold text-lg">
                 <p>Total Amount</p>
-                <p>৳{totalAmount.toFixed(2)}</p>
+                <p>৳{fareDetails.totalAmount.toFixed(2)}</p>
               </CardFooter>
             </Card>
           </div>
@@ -258,5 +270,3 @@ const PassengerDetailsForm = forwardRef<PassengerDetailsFormHandle, PassengerDet
 PassengerDetailsForm.displayName = "PassengerDetailsForm";
 
 export default PassengerDetailsForm;
-
-    

@@ -1,19 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
@@ -31,12 +23,12 @@ const TIMER_KEY = 'bookingExpiryTimestamp';
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
-  const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
   const [step, setStep] = useState(1); // 1: seat, 2: pickup, 3: summary
   const [expiryTimestamp, setExpiryTimestamp] = useState<number | null>(null);
 
   const { toast } = useToast();
   const passengerFormRef = useRef<PassengerDetailsFormHandle>(null);
+  const router = useRouter();
 
   useEffect(() => {
     // On component mount, check if there's an existing timer
@@ -144,11 +136,38 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleConfirmBooking = async () => {
     if (passengerFormRef.current) {
-      const isValid = await passengerFormRef.current.triggerValidation();
-      if (isValid) {
-        // In a real app, this would involve a payment gateway
+      const { isValid, data } = await passengerFormRef.current.triggerValidation();
+      if (isValid && data) {
+        // In a real app, this would involve a payment gateway and saving to a DB
         clearTimer();
-        setIsBookingConfirmed(true);
+        
+        // Generate a mock PNR for demo purposes
+        const pnr = `SY${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
+        const bookingDetails = {
+            pnr,
+            contactName: data.contactName,
+            contactMobile: data.contactMobile,
+            passengers: data.passengers,
+            route,
+            selectedSeats,
+            pickupPoint: selectedPickupPoint,
+            departureDate: departureDate ? departureDate.toISOString() : null,
+            totalAmount: passengerFormRef.current.getTotalAmount(),
+            status: 'Paid',
+        };
+        
+        // Store booking details in session storage to pass to the invoice page
+        sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
+
+        toast({
+            title: 'Booking Successful!',
+            description: `Your PNR is ${pnr}. Redirecting to your ticket...`,
+        });
+
+        // Close the sheet and redirect to the invoice page
+        onClose();
+        router.push(`/invoice/${pnr}`);
       }
     }
   };
@@ -331,22 +350,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             </div>
         </div>
       </div>
-
-      <AlertDialog open={isBookingConfirmed}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Booking Successful!</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your tickets for {selectedSeats.join(', ')} from {selectedPickupPoint} have been confirmed. An e-ticket has been sent to your mobile number.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => { setIsBookingConfirmed(false); onClose(); }}>
-              Done
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
