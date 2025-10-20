@@ -24,26 +24,80 @@ export type ClassFilter = 'non-ac' | 'ac-seater' | 'sleeper-ac' | 'business-ac';
 
 
 function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onLoginSuccess: () => void }) {
+  const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
+  const [mobileNumber, setMobileNumber] = useState('');
+
+  const handleOpenChange = (isOpen: boolean) => {
+    onOpenChange(isOpen);
+    if (!isOpen) {
+      // Reset state when dialog is closed
+      setTimeout(() => {
+        setStep('mobile');
+        setMobileNumber('');
+      }, 300);
+    }
+  };
+
+  const handleSendOtp = () => {
+    // In a real app, you would send an OTP here.
+    if (mobileNumber) {
+      setStep('otp');
+    }
+  };
+
+  const handleLogin = () => {
+    // In a real app, you would verify the OTP here.
+    onLoginSuccess();
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Login with Mobile</DialogTitle>
           <DialogDescription>
-            Please enter your mobile number to continue. A real app would send an OTP.
+            {step === 'mobile'
+              ? 'Please enter your mobile number to receive an OTP.'
+              : `We've sent an OTP to ${mobileNumber}. Please enter it below.`}
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="mobile" className="text-right">
-              Mobile
-            </Label>
-            <Input id="mobile" type="tel" placeholder="+8801..." className="col-span-3" />
+        {step === 'mobile' ? (
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="mobile" className="text-right">
+                Mobile
+              </Label>
+              <Input
+                id="mobile"
+                type="tel"
+                placeholder="+8801..."
+                className="col-span-3"
+                value={mobileNumber}
+                onChange={(e) => setMobileNumber(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleSendOtp} className="w-full" disabled={!mobileNumber}>
+              Send OTP
+            </Button>
           </div>
-        </div>
-        <Button onClick={onLoginSuccess} className="w-full">
-          Login & Continue
-        </Button>
+        ) : (
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="otp" className="text-right">
+                OTP
+              </Label>
+              <Input id="otp" type="text" placeholder="123456" className="col-span-3" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Button onClick={handleLogin} className="w-full">
+                Verify & Login
+              </Button>
+              <Button variant="link" size="sm" onClick={() => setStep('mobile')} className="text-muted-foreground">
+                Change mobile number
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
