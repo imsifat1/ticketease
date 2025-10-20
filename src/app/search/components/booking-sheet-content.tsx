@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Armchair, X, BusFront, ArrowRight, Calendar } from 'lucide-react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -170,9 +170,14 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                     </Button>
                 )}
                  {step === 2 && (
+                   <div className="flex items-center gap-2">
+                    <Button variant="outline" size="lg" onClick={() => setStep(1)}>
+                        <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                    </Button>
                     <Button size="lg" disabled={!selectedPickupPoint} onClick={handleConfirmBooking}>
                         Confirm Booking
                     </Button>
+                   </div>
                 )}
             </div>
             </div>
