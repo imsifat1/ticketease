@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Ticket,
   CircleCheckBig,
@@ -12,14 +13,14 @@ import {
   Calendar,
   Clock,
   Armchair,
-  User as UserIcon,
-  Phone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
+import type { BusRoute } from '@/lib/types';
+
 
 type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
 
@@ -32,54 +33,114 @@ const filterOptions: { label: BookingStatus | 'All'; icon: React.ElementType }[]
   { label: 'Reissued', icon: RefreshCw },
 ];
 
-const mockBookings = [
-  {
-    pnr: 'SY123456',
-    status: 'Paid',
+const mockRoutes: BusRoute[] = [
+    {
+    id: '1',
     operator: 'Hanif Enterprise',
     from: 'Dhaka',
     to: 'Chittagong',
-    journeyDate: '2024-08-15',
+    class: 'ac-seater',
     departureTime: '08:00 AM',
-    pickupPoint: 'Mohakhali',
-    seats: ['A3', 'A4'],
-    totalFare: 1550,
+    arrivalTime: '04:00 PM',
+    duration: '8h',
+    price: 750,
+    rating: 4.5,
+    amenities: ['AC', 'WiFi', 'Charging Port'],
+    seatLayout: { rows: [], booked: [] },
+    pickupPoints: [ { name: 'Mohakhali', time: '08:00 AM' }],
   },
-  {
-    pnr: 'SY654321',
-    status: 'Booked',
+    {
+    id: '2',
     operator: 'Shyamoli NR Travels',
     from: 'Dhaka',
     to: 'Sylhet',
-    journeyDate: '2024-08-20',
+    class: 'business-ac',
     departureTime: '10:30 PM',
-    pickupPoint: 'Arambagh',
-    seats: ['C1'],
-    totalFare: 1200,
+    arrivalTime: '06:30 AM',
+    duration: '8h',
+    price: 1200,
+    rating: 4.8,
+    amenities: ['AC', 'WiFi', 'Blanket', 'Water Bottle'],
+    seatLayout: { rows: [], booked: [] },
+    pickupPoints: [{ name: 'Arambagh', time: '10:30 PM' }],
   },
-  {
-    pnr: 'SY987654',
-    status: 'Canceled',
+    {
+    id: '3',
     operator: 'Green Line Paribahan',
     from: 'Chittagong',
     to: 'Dhaka',
-    journeyDate: '2024-07-25',
+    class: 'business-ac',
     departureTime: '09:00 AM',
-    pickupPoint: 'Dampara',
-    seats: ['B2', 'B3'],
-    totalFare: 2400,
+    arrivalTime: '03:00 PM',
+    duration: '6h',
+    price: 1200,
+    rating: 4.7,
+    amenities: ['AC', 'WiFi', 'Snacks'],
+    seatLayout: { rows: [], booked: [] },
+    pickupPoints: [{ name: 'Dampara', time: '09:00 AM' }],
   },
     {
-    pnr: 'SY246810',
-    status: 'Expired',
+    id: '4',
     operator: 'Ena Transport (Pvt) Ltd',
     from: 'Sylhet',
     to: 'Dhaka',
-    journeyDate: '2024-08-01',
+    class: 'non-ac',
     departureTime: '11:00 PM',
+    arrivalTime: '05:00 AM',
+    duration: '6h',
+    price: 600,
+    rating: 4.2,
+    amenities: ['WiFi'],
+    seatLayout: { rows: [], booked: [] },
+    pickupPoints: [{ name: 'Kadamtali Bus Stand', time: '11:00 PM' }],
+  },
+]
+
+
+const mockBookings = [
+  {
+    pnr: 'SY123456',
+    status: 'Paid' as BookingStatus,
+    route: mockRoutes[0],
+    departureDate: '2024-08-15T00:00:00.000Z',
+    pickupPoint: 'Mohakhali',
+    selectedSeats: ['A3', 'A4'],
+    totalAmount: 1550,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
+  },
+  {
+    pnr: 'SY654321',
+    status: 'Booked' as BookingStatus,
+    route: mockRoutes[1],
+    departureDate: '2024-08-20T00:00:00.000Z',
+    pickupPoint: 'Arambagh',
+    selectedSeats: ['C1'],
+    totalAmount: 1200,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
+  },
+  {
+    pnr: 'SY987654',
+    status: 'Canceled' as BookingStatus,
+    route: mockRoutes[2],
+    departureDate: '2024-07-25T00:00:00.000Z',
+    pickupPoint: 'Dampara',
+    selectedSeats: ['B2', 'B3'],
+    totalAmount: 2400,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
+  },
+    {
+    pnr: 'SY246810',
+    status: 'Expired' as BookingStatus,
+    route: mockRoutes[3],
+    departureDate: '2024-08-01T00:00:00.000Z',
     pickupPoint: 'Kadamtali Bus Stand',
-    seats: ['D3'],
-    totalFare: 600,
+    selectedSeats: ['D3'],
+    totalAmount: 600,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
   },
 ];
 
@@ -92,67 +153,76 @@ const statusColors: Record<BookingStatus, string> = {
 };
 
 
-const BookingCard = ({ booking }: { booking: (typeof mockBookings)[0] }) => (
-  <Card className="overflow-hidden">
-    <CardHeader className="flex-row items-center justify-between bg-muted/50 p-4">
-      <div className="flex flex-col">
-        <p className="text-sm text-muted-foreground">PNR Number</p>
-        <p className="font-bold text-lg">{booking.pnr}</p>
-      </div>
-       <Badge className={cn("text-sm", statusColors[booking.status as BookingStatus])}>
-        {booking.status}
-      </Badge>
-    </CardHeader>
-    <CardContent className="p-4 space-y-4">
-        <div>
-            <p className="font-bold text-primary text-xl">{booking.operator}</p>
-            <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
-                <span className="capitalize">{booking.from}</span>
-                <ArrowRight className="w-5 h-5 text-primary" />
-                <span className="capitalize">{booking.to}</span>
-            </div>
-        </div>
-        <Separator />
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <div>
-                    <p className="font-semibold">Journey Date</p>
-                    <p>{new Date(booking.journeyDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+const BookingCard = ({ booking }: { booking: (typeof mockBookings)[0] }) => {
+    const router = useRouter();
+
+    const handleViewDetails = () => {
+        sessionStorage.setItem(`booking-${booking.pnr}`, JSON.stringify(booking));
+        router.push(`/invoice/${booking.pnr}`);
+    }
+
+    return (
+      <Card className="overflow-hidden">
+        <CardHeader className="flex-row items-center justify-between bg-muted/50 p-4">
+          <div className="flex flex-col">
+            <p className="text-sm text-muted-foreground">PNR Number</p>
+            <p className="font-bold text-lg">{booking.pnr}</p>
+          </div>
+           <Badge className={cn("text-sm", statusColors[booking.status as BookingStatus])}>
+            {booking.status}
+          </Badge>
+        </CardHeader>
+        <CardContent className="p-4 space-y-4">
+            <div>
+                <p className="font-bold text-primary text-xl">{booking.route.operator}</p>
+                <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                    <span className="capitalize">{booking.route.from}</span>
+                    <ArrowRight className="w-5 h-5 text-primary" />
+                    <span className="capitalize">{booking.route.to}</span>
                 </div>
             </div>
-            <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <div>
-                    <p className="font-semibold">Departure</p>
-                    <p>{booking.departureTime}</p>
+            <Separator />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                        <p className="font-semibold">Journey Date</p>
+                        <p>{new Date(booking.departureDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                        <p className="font-semibold">Departure</p>
+                        <p>{booking.route.departureTime}</p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <Bus className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                        <p className="font-semibold">Pickup Point</p>
+                        <p>{booking.pickupPoint}</p>
+                    </div>
+                </div>
+                 <div className="flex items-center gap-2">
+                    <Armchair className="w-4 h-4 text-muted-foreground" />
+                    <div>
+                        <p className="font-semibold">Seats</p>
+                        <p>{booking.selectedSeats.join(', ')}</p>
+                    </div>
                 </div>
             </div>
-             <div className="flex items-center gap-2">
-                <Bus className="w-4 h-4 text-muted-foreground" />
-                <div>
-                    <p className="font-semibold">Pickup Point</p>
-                    <p>{booking.pickupPoint}</p>
-                </div>
+        </CardContent>
+        <CardFooter className="bg-muted/50 p-4 flex justify-between items-center">
+            <div>
+                <p className="text-sm text-muted-foreground">Total Fare</p>
+                <p className="font-bold text-xl text-primary">BDT {booking.totalAmount.toLocaleString()}</p>
             </div>
-             <div className="flex items-center gap-2">
-                <Armchair className="w-4 h-4 text-muted-foreground" />
-                <div>
-                    <p className="font-semibold">Seats</p>
-                    <p>{booking.seats.join(', ')}</p>
-                </div>
-            </div>
-        </div>
-    </CardContent>
-    <CardFooter className="bg-muted/50 p-4 flex justify-between items-center">
-        <div>
-            <p className="text-sm text-muted-foreground">Total Fare</p>
-            <p className="font-bold text-xl text-primary">BDT {booking.totalFare.toLocaleString()}</p>
-        </div>
-        <Button>View Details</Button>
-    </CardFooter>
-  </Card>
-);
+            <Button onClick={handleViewDetails}>View Details</Button>
+        </CardFooter>
+      </Card>
+    )
+};
 
 export default function MyBookingsPage() {
   const [activeFilter, setActiveFilter] = useState<BookingStatus | 'All'>('All');
