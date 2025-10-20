@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 
 export type PriceSort = 'low-to-high' | 'high-to-low' | '';
 export type TimeFilter = 'early-morning' | 'morning' | 'afternoon' | 'evening' | 'night';
@@ -26,6 +27,7 @@ export type ClassFilter = 'non-ac' | 'ac-seater' | 'sleeper-ac' | 'business-ac';
 function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, onOpenChange: (open: boolean) => void, onLoginSuccess: () => void }) {
   const [step, setStep] = useState<'mobile' | 'otp'>('mobile');
   const [mobileNumber, setMobileNumber] = useState('');
+  const { toast } = useToast();
 
   const handleOpenChange = (isOpen: boolean) => {
     onOpenChange(isOpen);
@@ -39,10 +41,17 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
   };
 
   const handleSendOtp = () => {
-    // In a real app, you would send an OTP here.
-    if (mobileNumber) {
-      setStep('otp');
+    const mobileRegex = /^01[0-9]{9}$/;
+    if (!mobileRegex.test(mobileNumber)) {
+      toast({
+        title: 'Invalid Mobile Number',
+        description: 'Please enter a valid 11-digit Bangladeshi mobile number starting with 01.',
+        variant: 'destructive',
+      });
+      return;
     }
+    // In a real app, you would send an OTP here.
+    setStep('otp');
   };
 
   const handleLogin = () => {
@@ -70,10 +79,11 @@ function LoginDialog({ open, onOpenChange, onLoginSuccess }: { open: boolean, on
               <Input
                 id="mobile"
                 type="tel"
-                placeholder="+8801..."
+                placeholder="01..."
                 className="col-span-3"
                 value={mobileNumber}
                 onChange={(e) => setMobileNumber(e.target.value)}
+                maxLength={11}
               />
             </div>
             <Button onClick={handleSendOtp} className="w-full" disabled={!mobileNumber}>
@@ -322,3 +332,5 @@ export default function SearchPage() {
     </Suspense>
   );
 }
+
+    
