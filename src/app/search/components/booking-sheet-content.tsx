@@ -17,6 +17,7 @@ import {
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 interface BookingSheetContentProps {
   route: BusRoute;
@@ -29,15 +30,26 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
   const [step, setStep] = useState(1); // 1 for seat selection, 2 for pickup point
+  const { toast } = useToast();
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
 
-    setSelectedSeats((prev) =>
-      prev.includes(seatId)
-        ? prev.filter((s) => s !== seatId)
-        : [...prev, seatId]
-    );
+    setSelectedSeats((prev) => {
+      const isCurrentlySelected = prev.includes(seatId);
+      if (isCurrentlySelected) {
+        return prev.filter((s) => s !== seatId);
+      }
+      if (prev.length >= 4) {
+        toast({
+          title: 'Seat limit reached',
+          description: 'You can select a maximum of 4 seats.',
+          variant: 'destructive',
+        });
+        return prev;
+      }
+      return [...prev, seatId];
+    });
   };
 
   const handleProceed = () => {
