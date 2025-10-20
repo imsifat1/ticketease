@@ -20,4 +20,5 @@ export type BusRoute = {
     rows: string[][];
     booked: string[];
   };
+  pickupPoints: string[];
 };

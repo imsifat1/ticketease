@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Clock, Star, Wifi, Zap, Wind } from 'lucide-react';
@@ -7,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 
 interface RouteListProps {
   routes: BusRoute[];
+  onSelectRoute: (route: BusRoute) => void;
 }
 
 const AmenityIcon = ({ amenity }: { amenity: string }) => {
@@ -22,7 +22,7 @@ const AmenityIcon = ({ amenity }: { amenity: string }) => {
   }
 };
 
-export default function RouteList({ routes }: RouteListProps) {
+export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
   if (routes.length === 0) {
     return (
       <div className="text-center py-16">
@@ -78,11 +78,9 @@ export default function RouteList({ routes }: RouteListProps) {
                 <p className="text-xl font-bold text-primary">BDT {route.price}</p>
                 <p className="text-xs text-muted-foreground">per seat</p>
               </div>
-              <Link href={`/booking/${route.id}`} className="w-full md:w-auto">
-                <Button className="w-full md:w-auto">
-                  View Seats <ArrowRight className="ml-2 w-4 h-4" />
-                </Button>
-              </Link>
+              <Button onClick={() => onSelectRoute(route)} className="w-full md:w-auto">
+                View Seats <ArrowRight className="ml-2 w-4 h-4" />
+              </Button>
             </div>
 
           </CardContent>
