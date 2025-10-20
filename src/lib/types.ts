@@ -30,3 +30,18 @@ export type BusRoute = {
   };
   pickupPoints: PickupPoint[];
 };
+
+
+export type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
+
+export type Booking = {
+    pnr: string;
+    status: BookingStatus;
+    route: BusRoute;
+    departureDate: string;
+    pickupPoint: string;
+    selectedSeats: string[];
+    totalAmount: number;
+    contactName: string;
+    contactMobile: string;
+}

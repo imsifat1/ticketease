@@ -1,4 +1,5 @@
 import type { BusRoute } from './types';
+import type { BookingStatus } from '@/app/my-bookings/page';
 
 export const mockBusRoutes: BusRoute[] = [
   {
@@ -178,5 +179,52 @@ export const mockBusRoutes: BusRoute[] = [
       { name: 'Kollanpur', time: '08:30 AM' },
       { name: 'Arambagh', time: '09:00 AM' },
     ],
+  },
+];
+
+export const mockBookings = [
+  {
+    pnr: 'SY123456',
+    status: 'Paid' as BookingStatus,
+    route: mockBusRoutes[0],
+    departureDate: '2024-08-15T00:00:00.000Z',
+    pickupPoint: 'Mohakhali',
+    selectedSeats: ['A3', 'A4'],
+    totalAmount: 1550,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
+  },
+  {
+    pnr: 'SY654321',
+    status: 'Booked' as BookingStatus,
+    route: mockBusRoutes[1],
+    departureDate: '2024-08-20T00:00:00.000Z',
+    pickupPoint: 'Arambagh',
+    selectedSeats: ['C1'],
+    totalAmount: 1200,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
+  },
+  {
+    pnr: 'SY987654',
+    status: 'Canceled' as BookingStatus,
+    route: mockBusRoutes[2],
+    departureDate: '2024-07-25T00:00:00.000Z',
+    pickupPoint: 'Dampara',
+    selectedSeats: ['B2', 'B3'],
+    totalAmount: 2400,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
+  },
+    {
+    pnr: 'SY246810',
+    status: 'Expired' as BookingStatus,
+    route: mockBusRoutes[3],
+    departureDate: '2024-08-01T00:00:00.000Z',
+    pickupPoint: 'Kadamtali Bus Stand',
+    selectedSeats: ['D3'],
+    totalAmount: 600,
+    contactName: 'Test User',
+    contactMobile: '01234567890',
   },
 ];

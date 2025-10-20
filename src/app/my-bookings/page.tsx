@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
+import { mockBookings } from '@/lib/mock-data';
 
 
 type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
@@ -31,117 +32,6 @@ const filterOptions: { label: BookingStatus | 'All'; icon: React.ElementType }[]
   { label: 'Canceled', icon: CircleX },
   { label: 'Expired', icon: TriangleAlert },
   { label: 'Reissued', icon: RefreshCw },
-];
-
-const mockRoutes: BusRoute[] = [
-    {
-    id: '1',
-    operator: 'Hanif Enterprise',
-    from: 'Dhaka',
-    to: 'Chittagong',
-    class: 'ac-seater',
-    departureTime: '08:00 AM',
-    arrivalTime: '04:00 PM',
-    duration: '8h',
-    price: 750,
-    rating: 4.5,
-    amenities: ['AC', 'WiFi', 'Charging Port'],
-    seatLayout: { rows: [], booked: [] },
-    pickupPoints: [ { name: 'Mohakhali', time: '08:00 AM' }],
-  },
-    {
-    id: '2',
-    operator: 'Shyamoli NR Travels',
-    from: 'Dhaka',
-    to: 'Sylhet',
-    class: 'business-ac',
-    departureTime: '10:30 PM',
-    arrivalTime: '06:30 AM',
-    duration: '8h',
-    price: 1200,
-    rating: 4.8,
-    amenities: ['AC', 'WiFi', 'Blanket', 'Water Bottle'],
-    seatLayout: { rows: [], booked: [] },
-    pickupPoints: [{ name: 'Arambagh', time: '10:30 PM' }],
-  },
-    {
-    id: '3',
-    operator: 'Green Line Paribahan',
-    from: 'Chittagong',
-    to: 'Dhaka',
-    class: 'business-ac',
-    departureTime: '09:00 AM',
-    arrivalTime: '03:00 PM',
-    duration: '6h',
-    price: 1200,
-    rating: 4.7,
-    amenities: ['AC', 'WiFi', 'Snacks'],
-    seatLayout: { rows: [], booked: [] },
-    pickupPoints: [{ name: 'Dampara', time: '09:00 AM' }],
-  },
-    {
-    id: '4',
-    operator: 'Ena Transport (Pvt) Ltd',
-    from: 'Sylhet',
-    to: 'Dhaka',
-    class: 'non-ac',
-    departureTime: '11:00 PM',
-    arrivalTime: '05:00 AM',
-    duration: '6h',
-    price: 600,
-    rating: 4.2,
-    amenities: ['WiFi'],
-    seatLayout: { rows: [], booked: [] },
-    pickupPoints: [{ name: 'Kadamtali Bus Stand', time: '11:00 PM' }],
-  },
-]
-
-
-const mockBookings = [
-  {
-    pnr: 'SY123456',
-    status: 'Paid' as BookingStatus,
-    route: mockRoutes[0],
-    departureDate: '2024-08-15T00:00:00.000Z',
-    pickupPoint: 'Mohakhali',
-    selectedSeats: ['A3', 'A4'],
-    totalAmount: 1550,
-    contactName: 'Test User',
-    contactMobile: '01234567890',
-  },
-  {
-    pnr: 'SY654321',
-    status: 'Booked' as BookingStatus,
-    route: mockRoutes[1],
-    departureDate: '2024-08-20T00:00:00.000Z',
-    pickupPoint: 'Arambagh',
-    selectedSeats: ['C1'],
-    totalAmount: 1200,
-    contactName: 'Test User',
-    contactMobile: '01234567890',
-  },
-  {
-    pnr: 'SY987654',
-    status: 'Canceled' as BookingStatus,
-    route: mockRoutes[2],
-    departureDate: '2024-07-25T00:00:00.000Z',
-    pickupPoint: 'Dampara',
-    selectedSeats: ['B2', 'B3'],
-    totalAmount: 2400,
-    contactName: 'Test User',
-    contactMobile: '01234567890',
-  },
-    {
-    pnr: 'SY246810',
-    status: 'Expired' as BookingStatus,
-    route: mockRoutes[3],
-    departureDate: '2024-08-01T00:00:00.000Z',
-    pickupPoint: 'Kadamtali Bus Stand',
-    selectedSeats: ['D3'],
-    totalAmount: 600,
-    contactName: 'Test User',
-    contactMobile: '01234567890',
-  },
 ];
 
 const statusColors: Record<BookingStatus, string> = {
@@ -157,6 +47,9 @@ const BookingCard = ({ booking }: { booking: (typeof mockBookings)[0] }) => {
     const router = useRouter();
 
     const handleViewDetails = () => {
+        // Instead of relying on sessionStorage which can be unreliable,
+        // we will fetch the data on the invoice page from the mock source.
+        // This ensures the page works even on a hard refresh.
         sessionStorage.setItem(`booking-${booking.pnr}`, JSON.stringify(booking));
         router.push(`/invoice/${booking.pnr}`);
     }

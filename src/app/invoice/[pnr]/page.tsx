@@ -9,6 +9,7 @@ import QRCode from 'react-qr-code';
 import { Bus, Calendar, Clock, Armchair, User, Phone, Printer, ArrowLeft } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { mockBookings } from '@/lib/mock-data';
 
 // This would typically be a more complex type from a DB
 type BookingDetails = any;
@@ -133,14 +134,22 @@ export default function InvoicePage() {
       return;
     }
 
+    let foundBooking = null;
     const bookingDataString = sessionStorage.getItem(`booking-${pnr}`);
     if (bookingDataString) {
-      setBooking(JSON.parse(bookingDataString));
+      foundBooking = JSON.parse(bookingDataString);
     } else {
-        // If not in session storage, maybe it's in my-bookings in the future
-        // For now, we show not found.
+      // If not in session storage, try finding it in the mock data
+      // This makes the "My Bookings" view details link work on hard refresh
+      foundBooking = mockBookings.find(b => b.pnr === pnr);
+    }
+
+    if (foundBooking) {
+      setBooking(foundBooking);
+    } else {
       notFound();
     }
+    
     setLoading(false);
   }, [pnr]);
 
