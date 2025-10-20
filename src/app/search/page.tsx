@@ -72,7 +72,7 @@ function SearchResults() {
           <SheetHeader>
             <SheetTitle>Complete Your Booking</SheetTitle>
           </SheetHeader>
-          {selectedRoute && <BookingSheetContent route={selectedRoute} onClose={() => setIsSheetOpen(false)} />}
+          {selectedRoute && <BookingSheetContent route={selectedRoute} departureDate={departureDate} onClose={() => setIsSheetOpen(false)} />}
         </SheetContent>
       </Sheet>
     </>

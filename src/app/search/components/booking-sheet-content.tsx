@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Armchair, X, BusFront } from 'lucide-react';
+import { Armchair, X, BusFront, ArrowRight, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { BusRoute } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -16,13 +16,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { format } from 'date-fns';
 
 interface BookingSheetContentProps {
   route: BusRoute;
+  departureDate: Date | null;
   onClose: () => void;
 }
 
-export default function BookingSheetContent({ route, onClose }: BookingSheetContentProps) {
+export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [isBookingConfirmed, setIsBookingConfirmed] = useState(false);
@@ -81,6 +83,21 @@ export default function BookingSheetContent({ route, onClose }: BookingSheetCont
   return (
     <>
       <div className="p-4 space-y-8">
+        <div className="border-b pb-4 mb-4">
+          <h3 className="font-bold text-lg text-primary">{route.operator}</h3>
+          <div className="flex justify-between items-center text-sm text-muted-foreground mt-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <span className="capitalize">{route.from}</span>
+              <ArrowRight className="w-4 h-4" />
+              <span className="capitalize">{route.to}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              <span>{departureDate ? format(departureDate, 'PPP') : 'N/A'} at {route.departureTime}</span>
+            </div>
+          </div>
+        </div>
+        
         {/* Progress Steps */}
         <div className="flex items-center w-full">
             <div className="flex items-center text-primary relative">
