@@ -22,16 +22,6 @@ import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { Booking } from '@/lib/types';
 import { mockBookings as initialBookings } from '@/lib/mock-data';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { Input } from '@/components/ui/input';
@@ -67,7 +57,9 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: 
         router.push(`/invoice/${booking.pnr}`);
     }
 
-    const canCancel = booking.status === 'Booked' || booking.status === 'Paid';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const canCancel = (booking.status === 'Booked' || booking.status === 'Paid') && new Date(booking.departureDate) >= today;
 
     return (
       <Card className="overflow-hidden">
@@ -327,5 +319,3 @@ export default function MyBookingsPage() {
     </div>
   );
 }
-
-    
