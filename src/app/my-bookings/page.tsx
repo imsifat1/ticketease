@@ -36,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 
 
 type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
