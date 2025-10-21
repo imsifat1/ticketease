@@ -1,5 +1,5 @@
 import type { BusRoute } from './types';
-import type { BookingStatus } from '@/app/my-bookings/page';
+import type { Booking } from '@/lib/types';
 
 export const mockBusRoutes: BusRoute[] = [
   {
@@ -182,12 +182,19 @@ export const mockBusRoutes: BusRoute[] = [
   },
 ];
 
-export const mockBookings = [
+
+const futureDate = (days: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toISOString();
+}
+
+export const mockBookings: Booking[] = [
   {
     pnr: 'SY123456',
-    status: 'Paid' as BookingStatus,
+    status: 'Paid',
     route: mockBusRoutes[0],
-    departureDate: '2024-08-15T00:00:00.000Z',
+    departureDate: futureDate(3),
     pickupPoint: 'Mohakhali',
     selectedSeats: ['A3', 'A4'],
     totalAmount: 1550,
@@ -196,9 +203,9 @@ export const mockBookings = [
   },
   {
     pnr: 'SY654321',
-    status: 'Booked' as BookingStatus,
+    status: 'Booked',
     route: mockBusRoutes[1],
-    departureDate: '2024-08-20T00:00:00.000Z',
+    departureDate: futureDate(7),
     pickupPoint: 'Arambagh',
     selectedSeats: ['C1'],
     totalAmount: 1200,
@@ -207,7 +214,7 @@ export const mockBookings = [
   },
   {
     pnr: 'SY987654',
-    status: 'Canceled' as BookingStatus,
+    status: 'Canceled',
     route: mockBusRoutes[2],
     departureDate: '2024-07-25T00:00:00.000Z',
     pickupPoint: 'Dampara',
@@ -218,7 +225,7 @@ export const mockBookings = [
   },
     {
     pnr: 'SY246810',
-    status: 'Expired' as BookingStatus,
+    status: 'Expired',
     route: mockBusRoutes[3],
     departureDate: '2024-08-01T00:00:00.000Z',
     pickupPoint: 'Kadamtali Bus Stand',
