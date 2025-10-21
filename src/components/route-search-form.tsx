@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { CalendarIcon, ArrowRightLeft } from 'lucide-react';
+import { CalendarIcon, ArrowRightLeft, Loader2 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ export default function RouteSearchForm() {
   const [departureDate, setDepartureDate] = useState<Date | undefined>(new Date());
   const [returnDate, setReturnDate] = useState<Date | undefined>();
   const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleSearch = () => {
     if (!fromCity || !toCity || !departureDate) {
@@ -42,6 +43,8 @@ export default function RouteSearchForm() {
       });
       return;
     }
+    
+    setLoading(true);
 
     let searchParams = `?from=${fromCity}&to=${toCity}&departureDate=${format(departureDate, 'yyyy-MM-dd')}`;
     if (isRoundTrip && returnDate) {
@@ -49,6 +52,7 @@ export default function RouteSearchForm() {
     }
 
     router.push(`/search${searchParams}`);
+    // No need to setLoading(false) as the page will navigate away
   };
 
   const handleSwapCities = () => {
@@ -146,7 +150,16 @@ export default function RouteSearchForm() {
           )}
 
           <div className={cn(isRoundTrip ? "md:col-span-4" : "md:col-span-2")}>
-            <Button onClick={handleSearch} className="w-full text-lg h-12">Search Buses</Button>
+            <Button onClick={handleSearch} disabled={loading} className="w-full text-lg h-12">
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Searching...
+                </>
+              ) : (
+                'Search Buses'
+              )}
+            </Button>
           </div>
         </div>
       </CardContent>
