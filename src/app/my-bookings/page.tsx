@@ -20,7 +20,17 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 import type { Booking } from '@/lib/types';
-import { mockBookings } from '@/lib/mock-data';
+import { mockBookings as initialBookings } from '@/lib/mock-data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 
 type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
@@ -43,7 +53,7 @@ const statusColors: Record<BookingStatus, string> = {
 };
 
 
-const BookingCard = ({ booking }: { booking: Booking }) => {
+const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: string) => void; }) => {
     const router = useRouter();
 
     const handleViewDetails = () => {
@@ -52,6 +62,8 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
         sessionStorage.setItem(`booking-${booking.pnr}`, JSON.stringify(booking));
         router.push(`/invoice/${booking.pnr}`);
     }
+
+    const canCancel = booking.status === 'Booked' || booking.status === 'Paid';
 
     return (
       <Card className="overflow-hidden">
@@ -110,7 +122,12 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
                 <p className="text-sm text-muted-foreground">Total Fare</p>
                 <p className="font-bold text-xl text-primary">BDT {booking.totalAmount.toLocaleString()}</p>
             </div>
-            <Button onClick={handleViewDetails}>View Details</Button>
+            <div className="flex items-center gap-2">
+                {canCancel && (
+                    <Button variant="destructive" onClick={() => onCancel(booking.pnr)}>Cancel Booking</Button>
+                )}
+                <Button onClick={handleViewDetails}>View Details</Button>
+            </div>
         </CardFooter>
       </Card>
     )
@@ -118,13 +135,33 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
 
 export default function MyBookingsPage() {
   const [activeFilter, setActiveFilter] = useState<BookingStatus | 'All'>('All');
+  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+
+  const handleOpenCancelDialog = (pnr: string) => {
+    setBookingToCancel(pnr);
+    setCancelAlertOpen(true);
+  }
+
+  const handleConfirmCancel = () => {
+    if (bookingToCancel) {
+      setBookings(currentBookings =>
+        currentBookings.map(b =>
+          b.pnr === bookingToCancel ? { ...b, status: 'Canceled' } : b
+        )
+      );
+    }
+    setCancelAlertOpen(false);
+    setBookingToCancel(null);
+  }
 
   const filteredBookings = useMemo(() => {
     if (activeFilter === 'All') {
-      return mockBookings;
+      return bookings;
     }
-    return mockBookings.filter((booking) => booking.status === activeFilter);
-  }, [activeFilter]);
+    return bookings.filter((booking) => booking.status === activeFilter);
+  }, [activeFilter, bookings]);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -152,7 +189,7 @@ export default function MyBookingsPage() {
         <div className="mt-8 grid grid-cols-1 gap-6">
             {filteredBookings.length > 0 ? (
                 filteredBookings.map((booking) => (
-                    <BookingCard key={booking.pnr} booking={booking} />
+                    <BookingCard key={booking.pnr} booking={booking} onCancel={handleOpenCancelDialog} />
                 ))
             ) : (
                 <div className="text-center py-16 col-span-full">
@@ -163,6 +200,25 @@ export default function MyBookingsPage() {
                 </div>
             )}
         </div>
+        
+        <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently cancel your booking. 
+                Refunds are subject to the operator's policy.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Back</AlertDialogCancel>
+              <AlertDialogAction onClick={handleConfirmCancel} className={cn(buttonVariants({ variant: "destructive" }))}>
+                Confirm Cancellation
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
     </div>
   );
 }
