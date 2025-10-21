@@ -182,16 +182,6 @@ function SearchResults() {
   const [timeFilters, setTimeFilters] = useState<Set<TimeFilter>>(new Set());
   const [classFilters, setClassFilters] = useState<Set<ClassFilter>>(new Set());
 
-  // Check for login query param on initial render
-  useEffect(() => {
-    if (searchParams.get('login') === 'true') {
-      if (!isLoggedIn) {
-        setLoginDialogOpen(true);
-      }
-    }
-  }, [searchParams, isLoggedIn, setLoginDialogOpen]);
-
-
   const from = searchParams.get('from');
   const to = searchParams.get('to');
   const departureDateStr = searchParams.get('departureDate');
