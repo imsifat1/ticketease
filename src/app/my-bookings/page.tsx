@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Ticket,
@@ -13,6 +13,7 @@ import {
   Calendar,
   Clock,
   Armchair,
+  Loader2,
 } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -30,7 +31,12 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+import { sendOtp } from '@/ai/flows/send-otp-flow';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 
 type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
@@ -57,8 +63,6 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: 
     const router = useRouter();
 
     const handleViewDetails = () => {
-        // Store in session storage to make sure the invoice page can find it,
-        // especially if it's not in the static mockBookings array (e.g. a new booking).
         sessionStorage.setItem(`booking-${booking.pnr}`, JSON.stringify(booking));
         router.push(`/invoice/${booking.pnr}`);
     }
@@ -136,24 +140,86 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: 
 export default function MyBookingsPage() {
   const [activeFilter, setActiveFilter] = useState<BookingStatus | 'All'>('All');
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
-  const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
-  const [bookingToCancel, setBookingToCancel] = useState<string | null>(null);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
+  const [cancelStep, setCancelStep] = useState<'initial' | 'otp'>('initial');
+  const [otp, setOtp] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+  
+  const isDevMode = !process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID.startsWith('ACxxx');
 
   const handleOpenCancelDialog = (pnr: string) => {
-    setBookingToCancel(pnr);
-    setCancelAlertOpen(true);
+    const booking = bookings.find(b => b.pnr === pnr);
+    if (booking) {
+      setBookingToCancel(booking);
+      setCancelDialogOpen(true);
+      setCancelStep('initial');
+      setOtp('');
+      setGeneratedOtp('');
+    }
+  }
+
+  const handleCloseCancelDialog = () => {
+    setCancelDialogOpen(false);
+    setTimeout(() => {
+        setBookingToCancel(null);
+        setCancelStep('initial');
+        setOtp('');
+        setGeneratedOtp('');
+    }, 300);
+  }
+
+  const handleSendCancelOtp = () => {
+    if (!bookingToCancel) return;
+
+    startTransition(async () => {
+        const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+        setGeneratedOtp(newOtp);
+
+        const formattedNumber = `+88${bookingToCancel.contactMobile}`;
+
+        const result = await sendOtp({ to: formattedNumber, otp: newOtp });
+
+        if (result.success) {
+            toast({
+                title: 'OTP Sent',
+                description: `An OTP has been sent to ${bookingToCancel.contactMobile}.`,
+            });
+            setCancelStep('otp');
+        } else {
+            toast({
+                title: 'Failed to Send OTP',
+                description: result.error || 'Please try again later.',
+                variant: 'destructive',
+            });
+        }
+    });
   }
 
   const handleConfirmCancel = () => {
+    if (otp !== generatedOtp) {
+      toast({
+        title: 'Invalid OTP',
+        description: 'The OTP you entered is incorrect.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     if (bookingToCancel) {
       setBookings(currentBookings =>
         currentBookings.map(b =>
-          b.pnr === bookingToCancel ? { ...b, status: 'Canceled' } : b
+          b.pnr === bookingToCancel.pnr ? { ...b, status: 'Canceled' } : b
         )
       );
+      toast({
+        title: 'Booking Canceled',
+        description: 'Your refund will be processed within 7 working days.',
+      });
     }
-    setCancelAlertOpen(false);
-    setBookingToCancel(null);
+    handleCloseCancelDialog();
   }
 
   const filteredBookings = useMemo(() => {
@@ -201,24 +267,65 @@ export default function MyBookingsPage() {
             )}
         </div>
         
-        <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently cancel your booking. 
-                Refunds are subject to the operator's policy.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Back</AlertDialogCancel>
-              <AlertDialogAction onClick={handleConfirmCancel} className={cn(buttonVariants({ variant: "destructive" }))}>
-                Confirm Cancellation
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
+        <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+            <DialogContent className="sm:max-w-md">
+                 {cancelStep === 'initial' && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>Confirm Cancellation</DialogTitle>
+                            <DialogDescription>
+                                An OTP will be sent to your registered mobile number ({bookingToCancel?.contactMobile}) to confirm the cancellation. Refunds are subject to the operator's policy.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={handleCloseCancelDialog}>Back</Button>
+                            <Button variant="destructive" onClick={handleSendCancelOtp} disabled={isPending}>
+                                {isPending ? <Loader2 className="animate-spin" /> : 'Send OTP'}
+                            </Button>
+                        </DialogFooter>
+                    </>
+                 )}
+                 {cancelStep === 'otp' && (
+                    <>
+                        <DialogHeader>
+                            <DialogTitle>Enter OTP to Cancel</DialogTitle>
+                            <DialogDescription>
+                                Please enter the 6-digit OTP sent to your mobile number.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="grid gap-4 py-4">
+                            <div className="grid grid-cols-4 items-center gap-4">
+                                <Label htmlFor="otp" className="text-right">
+                                OTP
+                                </Label>
+                                <Input 
+                                    id="otp" 
+                                    type="text" 
+                                    placeholder="123456" 
+                                    className="col-span-3"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value)}
+                                    maxLength={6}
+                                />
+                            </div>
+                            {isDevMode && generatedOtp && (
+                                <div className="text-center text-sm text-muted-foreground bg-muted p-2 rounded-md">
+                                    Demo OTP: <span className="font-bold text-foreground">{generatedOtp}</span>
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setCancelStep('initial')}>Back</Button>
+                             <Button onClick={handleConfirmCancel} className={cn(buttonVariants({ variant: "destructive" }))}>
+                                Confirm Cancellation
+                            </Button>
+                        </DialogFooter>
+                    </>
+                 )}
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
+
+    
