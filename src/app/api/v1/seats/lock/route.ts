@@ -1,8 +1,15 @@
-import { lockSeats, LockSeatsInputSchema } from "@/ai/flows/lock-seat-flow";
+import { lockSeats } from "@/ai/flows/lock-seat-flow";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 export const dynamic = 'force-dynamic';
+
+const LockSeatsInputSchema = z.object({
+  busId: z.string().describe('The ID of the bus route.'),
+  seatNumbers: z.array(z.string()).describe('The array of seat numbers to lock.'),
+  customerId: z.string().describe('The ID of the customer.'),
+  date: z.string().describe('The date of the journey in YYYY-MM-DD format.'),
+});
 
 export async function POST(request: Request) {
     let requestBody: any;

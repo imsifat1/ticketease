@@ -11,7 +11,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { mockBusRoutes } from '@/lib/mock-data';
 
-export const LockSeatsInputSchema = z.object({
+const LockSeatsInputSchema = z.object({
   busId: z.string().describe('The ID of the bus route.'),
   seatNumbers: z.array(z.string()).describe('The array of seat numbers to lock.'),
   customerId: z.string().describe('The ID of the customer.'),
@@ -19,7 +19,7 @@ export const LockSeatsInputSchema = z.object({
 });
 export type LockSeatsInput = z.infer<typeof LockSeatsInputSchema>;
 
-export const LockSeatsOutputSchema = z.object({
+const LockSeatsOutputSchema = z.object({
   success: z.boolean().describe('Whether the lock operation was successful.'),
   message: z.string().describe('A message detailing the result of the operation.'),
   lockedSeats: z.array(z.string()).optional().describe('The seats that were successfully locked.'),
