@@ -94,6 +94,7 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: 
     const router = useRouter();
 
     const handleViewDetails = () => {
+        // We still save to sessionStorage to ensure the invoice page works on refresh
         sessionStorage.setItem(`booking-${booking.pnr}`, JSON.stringify(booking));
         router.push(`/invoice/${booking.pnr}`);
     }
@@ -206,7 +207,27 @@ export default function MyBookingsPage() {
       return;
     }
 
+    // Combine mock data with any newly created booking from session storage
     const customerBookings = initialBookings.filter(b => b.customerId === user?.mobileNumber);
+    const newBookingPnr = sessionStorage.getItem('newly-booked-pnr');
+    
+    if (newBookingPnr) {
+      const newBookingData = sessionStorage.getItem(`booking-${newBookingPnr}`);
+      if (newBookingData) {
+        try {
+          const newBooking = JSON.parse(newBookingData);
+          // Add to the list if it's not already there
+          if (!customerBookings.some(b => b.pnr === newBooking.pnr)) {
+            customerBookings.unshift(newBooking);
+          }
+        } catch(e) {
+          console.error("Failed to parse new booking from session storage", e);
+        }
+      }
+      // Clean up after reading it
+      sessionStorage.removeItem('newly-booked-pnr');
+    }
+
     setBookings(customerBookings);
     
     fetchWallet();

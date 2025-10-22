@@ -38,7 +38,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
       // For now, the lock will just expire on the server.
       setActiveLock(null);
       setSelectedSeats([]);
-      setSelectedPickupPoint('');
+      // Don't clear pickup point, user might want to re-select seats
       setStep(1);
   };
   
@@ -159,8 +159,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         
         const totalAmount = passengerFormRef.current.getTotalAmount();
         
-        // This is where we would typically call an API to finalize the booking.
-        // For this demo, we'll directly manipulate the mock data.
         const routeIndex = mockBusRoutes.findIndex(r => r.id === route.id);
         if (routeIndex !== -1) {
             const currentBookedSeats = new Set(mockBusRoutes[routeIndex].seatLayout.booked);
@@ -183,12 +181,11 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             customerId: user.mobileNumber,
         };
 
-        // Add the new booking to our mock data array
         mockBookings.unshift(bookingDetails as any);
         
         sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
+        sessionStorage.setItem('newly-booked-pnr', pnr);
         
-        // Add reward points via API
         const pointsEarned = Math.floor(totalAmount / 100);
         if (pointsEarned > 0) {
             try {
@@ -203,7 +200,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                 });
             } catch (error) {
                 console.error("Failed to add reward points:", error);
-                // Don't block booking for this, just log it.
             }
         }
 
@@ -213,7 +209,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             description: `Your PNR is ${pnr}. Redirecting to your ticket...`,
         });
 
-        clearSession(); // Important: Clear the session lock after booking
+        clearSession();
         onClose();
         router.push(`/invoice/${pnr}`);
       }
