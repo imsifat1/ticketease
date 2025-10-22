@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
-import { mockBusRoutes } from '@/lib/mock-data';
+import { mockBusRoutes, mockBookings } from '@/lib/mock-data';
 import { useAuth } from '@/context/auth-context';
 
 
@@ -155,7 +155,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
   const handleConfirmBooking = async () => {
     if (passengerFormRef.current) {
       const { isValid, data } = await passengerFormRef.current.triggerValidation();
-      if (isValid && data) {
+      if (isValid && data && user) {
         
         const totalAmount = passengerFormRef.current.getTotalAmount();
         
@@ -174,21 +174,23 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             pnr,
             contactName: data.contactName,
             contactMobile: data.contactMobile,
-            passengers: data.passengers,
-            route: mockBusRoutes[routeIndex], // send the updated route object
+            route: route, // send the original route object
             selectedSeats,
             pickupPoint: selectedPickupPoint,
-            departureDate: departureDate ? departureDate.toISOString() : null,
+            departureDate: departureDate ? departureDate.toISOString() : new Date().toISOString(),
             totalAmount: totalAmount,
-            status: 'Paid',
-            customerId: data.contactMobile,
+            status: 'Paid', // Assuming payment is successful
+            customerId: user.mobileNumber,
         };
+
+        // Add the new booking to our mock data array
+        mockBookings.unshift(bookingDetails as any);
         
         sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
         
         // Add reward points via API
         const pointsEarned = Math.floor(totalAmount / 100);
-        if (pointsEarned > 0 && user) {
+        if (pointsEarned > 0) {
             try {
                 await fetch(`/api/v1/wallet/${user.mobileNumber}/add-points`, {
                     method: 'POST',
@@ -399,3 +401,5 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     </>
   );
 }
+
+    
