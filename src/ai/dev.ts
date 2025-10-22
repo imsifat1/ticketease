@@ -3,3 +3,4 @@ import './flows/send-otp-flow';
 import './flows/get-seat-layout-flow';
 import './flows/lock-seat-flow';
 import './flows/get-bookings-flow';
+import './flows/get-customers-flow';
