@@ -19,6 +19,7 @@ interface BookingSheetContentProps {
 }
 
 const TIMER_KEY = 'bookingExpiryTimestamp';
+const SESSION_KEY = 'bookingSession';
 
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
@@ -30,30 +31,87 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
   const passengerFormRef = useRef<PassengerDetailsFormHandle>(null);
   const router = useRouter();
 
+  const clearSession = () => {
+      localStorage.removeItem(TIMER_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+      setExpiryTimestamp(null);
+      setSelectedSeats([]);
+      setSelectedPickupPoint('');
+      setStep(1);
+  };
+  
+  // Effect to handle component unmount or close
   useEffect(() => {
-    // On component mount, check if there's an existing timer
+    return () => {
+      // This cleanup runs when the component unmounts.
+      // If a booking is in progress (timer is running), we clear it.
+      if (localStorage.getItem(TIMER_KEY)) {
+        clearSession();
+      }
+    };
+  }, []);
+  
+  // This effect synchronizes the onClose prop with clearing the session.
+  useEffect(() => {
+    const handleClose = () => {
+        clearSession();
+    };
+    // The component is controlled by an external `open` state. 
+    // `onClose` is the trigger to close it. We hook into that.
+    // However, since we can't directly know when the sheet is closed from a prop,
+    // we assume the parent component will re-mount this component or change the route prop,
+    // which triggers the cleanup. For a more direct approach, we rely on the `onClose` call.
+    // Let's add a specific effect for `onClose`.
+    
+    // The parent's onOpenChange will call our onClose. Let's make it robust.
+    // We'll reset state when the sheet is asked to close.
+    const originalOnClose = onClose;
+    onClose = () => {
+        clearSession();
+        originalOnClose();
+    }
+
+  }, [onClose]);
+
+  useEffect(() => {
+    // On component mount, check for an existing session
     const storedTimestamp = localStorage.getItem(TIMER_KEY);
-    if (storedTimestamp) {
+    const storedSession = sessionStorage.getItem(SESSION_KEY);
+
+    if (storedTimestamp && storedSession) {
         const timestamp = parseInt(storedTimestamp, 10);
-        if (timestamp > Date.now()) {
+        const sessionData = JSON.parse(storedSession);
+        
+        if (timestamp > Date.now() && sessionData.routeId === route.id) {
             setExpiryTimestamp(timestamp);
-            // Logic to restore state can be added here if needed
-            // For now, it just respects the running timer
+            setSelectedSeats(sessionData.selectedSeats || []);
+            setSelectedPickupPoint(sessionData.selectedPickupPoint || '');
+            setStep(sessionData.step || 1);
         } else {
-            // Timer expired while the component was unmounted
-            localStorage.removeItem(TIMER_KEY);
+            // Timer expired or it's for a different route
+            clearSession();
         }
     }
-  }, []);
+  }, [route.id]);
+
+  const saveSession = (currentStep: number, currentSeats: string[], currentPickup: string) => {
+    const sessionData = {
+      routeId: route.id,
+      step: currentStep,
+      selectedSeats: currentSeats,
+      selectedPickupPoint: currentPickup,
+    };
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+  }
+
 
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
 
-    // Cannot change seats if timer is running
     if (expiryTimestamp) {
         toast({
             title: 'Booking in Progress',
-            description: 'You cannot change seats while your booking session is active.',
+            description: 'You cannot change seats while your booking session is active. Go back to seat selection to unlock.',
             variant: 'destructive',
         });
         return;
@@ -71,16 +129,13 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     }
 
     setSelectedSeats((prev) => {
-      if (isCurrentlySelected) {
-        return prev.filter((s) => s !== seatId);
-      } else {
-        return [...prev, seatId];
-      }
+      const newSeats = isCurrentlySelected ? prev.filter((s) => s !== seatId) : [...prev, seatId];
+      saveSession(step, newSeats, selectedPickupPoint);
+      return newSeats;
     });
   };
 
   const startTimer = () => {
-    // Only start a new timer if one isn't already running
     if (!expiryTimestamp) {
         const newExpiryTimestamp = Date.now() + 4 * 60 * 1000;
         localStorage.setItem(TIMER_KEY, newExpiryTimestamp.toString());
@@ -88,21 +143,13 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     }
   };
 
-  const clearTimer = () => {
-      localStorage.removeItem(TIMER_KEY);
-      setExpiryTimestamp(null);
-  }
-
   const handleTimeout = () => {
     toast({
         title: "Session Expired",
         description: "Your selected seats have been released. Please try again.",
         variant: "destructive",
     });
-    clearTimer();
-    setSelectedSeats([]);
-    setSelectedPickupPoint('');
-    setStep(1);
+    clearSession();
     onClose();
   };
 
@@ -110,38 +157,37 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     if (step === 1 && selectedSeats.length > 0) {
       startTimer();
       setStep(2);
+      saveSession(2, selectedSeats, selectedPickupPoint);
     }
   };
 
   const handleProceedToSummary = () => {
     if (step === 2 && selectedPickupPoint) {
       setStep(3);
+      saveSession(3, selectedSeats, selectedPickupPoint);
     }
   };
 
   const handleGoBackFromSummary = () => {
     setStep(2);
-    // Do not clear the timer here
+    saveSession(2, selectedSeats, selectedPickupPoint);
   }
 
   const handleGoBackFromPickup = () => {
-    setStep(1);
-    // When going back to seat selection, we should stop the timer and release seats conceptually
-    clearTimer();
+    clearSession();
     toast({
         title: 'Booking Timer Cancelled',
-        description: 'You can now change your seat selection.',
+        description: 'Your seat selection has been reset. You can now choose new seats.',
     });
+    // We keep the sheet open, so we don't call onClose()
   }
 
   const handleConfirmBooking = async () => {
     if (passengerFormRef.current) {
       const { isValid, data } = await passengerFormRef.current.triggerValidation();
       if (isValid && data) {
-        // In a real app, this would involve a payment gateway and saving to a DB
-        clearTimer();
+        clearSession();
         
-        // Generate a mock PNR for demo purposes
         const pnr = `SY${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
         const bookingDetails = {
@@ -157,7 +203,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             status: 'Paid',
         };
         
-        // Store booking details in session storage to pass to the invoice page
         sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
 
         toast({
@@ -165,7 +210,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             description: `Your PNR is ${pnr}. Redirecting to your ticket...`,
         });
 
-        // Close the sheet and redirect to the invoice page
         onClose();
         router.push(`/invoice/${pnr}`);
       }
@@ -190,7 +234,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             'bg-muted border-gray-300 cursor-not-allowed': status === 'booked',
             'bg-background hover:bg-accent border-gray-400': status === 'available',
             'bg-primary text-primary-foreground border-primary': status === 'selected',
-            'cursor-not-allowed hover:bg-primary': expiryTimestamp && status === 'selected'
+            'cursor-not-allowed hover:bg-primary': expiryTimestamp && status !== 'selected'
           }
         )}
         aria-label={`Seat ${id}, ${status}`}
@@ -280,7 +324,10 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         {step === 2 && (
           <div className="mt-16 pt-4">
             <h3 className="text-lg font-semibold mb-4">Select Your Pickup Point</h3>
-            <RadioGroup value={selectedPickupPoint} onValueChange={setSelectedPickupPoint} className="space-y-2">
+            <RadioGroup value={selectedPickupPoint} onValueChange={(value) => {
+                setSelectedPickupPoint(value);
+                saveSession(step, selectedSeats, value);
+            }} className="space-y-2">
               {route.pickupPoints.map((point) => (
                 <Label key={point.name} htmlFor={point.name} className="flex items-center justify-between p-4 border rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
                     <div className="flex items-center">
