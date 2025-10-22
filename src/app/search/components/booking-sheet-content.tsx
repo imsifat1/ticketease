@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
 import { mockBusRoutes } from '@/lib/mock-data';
 import { useAuth } from '@/context/auth-context';
-import { addRewardPoints } from '@/lib/wallet-store';
 
 
 interface BookingSheetContentProps {
@@ -187,14 +186,23 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         
         sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
         
-        // Add reward points
+        // Add reward points via API
         const pointsEarned = Math.floor(totalAmount / 100);
-        if (pointsEarned > 0) {
-            addRewardPoints(data.contactMobile, pointsEarned);
-            toast({
-                title: 'Reward Points Earned!',
-                description: `You have earned ${pointsEarned} points from this booking.`,
-            });
+        if (pointsEarned > 0 && user) {
+            try {
+                await fetch(`/api/v1/wallet/${user.mobileNumber}/add-points`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pointsToAdd: pointsEarned })
+                });
+                toast({
+                    title: 'Reward Points Earned!',
+                    description: `You have earned ${pointsEarned} points from this booking.`,
+                });
+            } catch (error) {
+                console.error("Failed to add reward points:", error);
+                // Don't block booking for this, just log it.
+            }
         }
 
 
@@ -391,5 +399,3 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     </>
   );
 }
-
-    
