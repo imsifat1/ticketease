@@ -12,7 +12,6 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
 import { mockBusRoutes } from '@/lib/mock-data';
-import { lockSeats } from '@/ai/flows/lock-seat-flow';
 import { useAuth } from '@/context/auth-context';
 
 
@@ -97,19 +96,37 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             toast({ title: 'Authentication Error', description: 'User not found.', variant: 'destructive'});
             return;
         }
-        const result = await lockSeats({
-            busId: route.id,
-            seatNumbers: selectedSeats,
-            customerId: user.mobileNumber, // Use logged-in user's mobile number
-        });
         
-        if (result.success && result.lockId && result.expiresAt) {
-            setActiveLock({ lockId: result.lockId, expiresAt: result.expiresAt });
-            setStep(2);
-        } else {
-             toast({
-                title: 'Failed to lock seats',
-                description: result.message,
+        try {
+            const response = await fetch('/api/v1/seats/lock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    busId: route.id,
+                    seatNumbers: selectedSeats,
+                    customerId: user.mobileNumber,
+                }),
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                setActiveLock({ lockId: result.lockId, expiresAt: result.expiresAt });
+                setStep(2);
+            } else {
+                toast({
+                    title: 'Failed to lock seats',
+                    description: result.error || 'An unknown error occurred.',
+                    variant: 'destructive',
+                });
+            }
+        } catch (error) {
+            console.error("Error calling lock API:", error);
+            toast({
+                title: 'Request Failed',
+                description: 'Could not connect to the server to lock seats. Please check your connection.',
                 variant: 'destructive',
             });
         }
@@ -360,3 +377,5 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     </>
   );
 }
+
+    
