@@ -200,6 +200,7 @@ export const mockBookings: Booking[] = [
     totalAmount: 1550,
     contactName: 'Test User',
     contactMobile: '01234567890',
+    customerId: '01234567890',
   },
   {
     pnr: 'SY654321',
@@ -211,6 +212,7 @@ export const mockBookings: Booking[] = [
     totalAmount: 1200,
     contactName: 'Test User',
     contactMobile: '01234567890',
+    customerId: '01234567890',
   },
   {
     pnr: 'SY987654',
@@ -222,6 +224,7 @@ export const mockBookings: Booking[] = [
     totalAmount: 2400,
     contactName: 'Test User',
     contactMobile: '01234567890',
+    customerId: '01234567890',
   },
     {
     pnr: 'SY246810',
@@ -231,7 +234,8 @@ export const mockBookings: Booking[] = [
     pickupPoint: 'Kadamtali Bus Stand',
     selectedSeats: ['D3'],
     totalAmount: 600,
-    contactName: 'Test User',
-    contactMobile: '01234567890',
+    contactName: 'Another User',
+    contactMobile: '01987654321',
+    customerId: '01987654321',
   },
 ];

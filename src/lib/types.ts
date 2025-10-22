@@ -44,4 +44,5 @@ export type Booking = {
     totalAmount: number;
     contactName: string;
     contactMobile: string;
+    customerId: string; // Usually the mobile number or a user ID
 }
