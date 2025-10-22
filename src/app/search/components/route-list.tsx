@@ -46,7 +46,21 @@ export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
     <div className="space-y-4">
       {routes.map((route) => {
         const totalSeats = route.seatLayout.rows.flat().filter(s => s).length;
-        const availableSeats = totalSeats - route.seatLayout.booked.length;
+        
+        let temporarilyLockedSeats: string[] = [];
+        try {
+            const lockedSeatsStr = sessionStorage.getItem('lockedSeats');
+            const lockedRouteId = sessionStorage.getItem('lockedRouteId');
+            if (lockedSeatsStr && lockedRouteId === route.id) {
+                temporarilyLockedSeats = JSON.parse(lockedSeatsStr);
+            }
+        } catch (e) {
+            // Ignore sessionStorage errors
+        }
+
+        const allBookedSeats = new Set([...route.seatLayout.booked, ...temporarilyLockedSeats]);
+        const availableSeats = totalSeats - allBookedSeats.size;
+
         return (
           <Card key={route.id} className="hover:shadow-lg transition-shadow">
             <CardContent className="p-4 grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
@@ -90,14 +104,14 @@ export default function RouteList({ routes, onSelectRoute }: RouteListProps) {
                   <p className="text-xl font-bold text-primary">BDT {route.price}</p>
                   <p className="text-xs text-muted-foreground">per seat</p>
                   <div className="flex items-center justify-end">
-                    <Badge variant="outline" className="mt-1 bg-accent border-primary/50 text-primary font-medium">
+                    <Badge variant={availableSeats > 0 ? "outline" : "destructive"} className="mt-1 bg-accent border-primary/50 text-primary font-medium">
                         <Armchair className="w-4 h-4 mr-1" />
-                        {availableSeats} seats available
+                        {availableSeats > 0 ? `${availableSeats} seats available` : 'Sold Out'}
                     </Badge>
                   </div>
                 </div>
-                <Button onClick={() => onSelectRoute(route)} className="w-full md:w-auto">
-                  Book Seats <ArrowRight className="ml-2 w-4 h-4" />
+                <Button onClick={() => onSelectRoute(route)} className="w-full md:w-auto" disabled={availableSeats === 0}>
+                  {availableSeats > 0 ? 'Book Seats' : 'Sold Out'} <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
 

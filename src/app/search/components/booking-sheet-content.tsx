@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
+import { mockBusRoutes } from '@/lib/mock-data';
 
 interface BookingSheetContentProps {
   route: BusRoute;
@@ -19,7 +20,10 @@ interface BookingSheetContentProps {
 }
 
 const TIMER_KEY = 'bookingExpiryTimestamp';
-const SESSION_KEY = 'bookingSession';
+const LOCKED_SEATS_KEY = 'lockedSeats';
+const LOCKED_ROUTE_ID_KEY = 'lockedRouteId';
+const SESSION_STEP_KEY = 'bookingStep';
+
 
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
@@ -33,75 +37,57 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const clearSession = () => {
       localStorage.removeItem(TIMER_KEY);
-      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(LOCKED_SEATS_KEY);
+      sessionStorage.removeItem(LOCKED_ROUTE_ID_KEY);
+      sessionStorage.removeItem(SESSION_STEP_KEY);
       setExpiryTimestamp(null);
       setSelectedSeats([]);
       setSelectedPickupPoint('');
       setStep(1);
   };
   
-  // Effect to handle component unmount or close
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      clearSession();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
-      // This cleanup runs when the component unmounts.
-      // If a booking is in progress (timer is running), we clear it.
-      if (localStorage.getItem(TIMER_KEY)) {
-        clearSession();
-      }
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearSession();
     };
   }, []);
-  
-  // This effect synchronizes the onClose prop with clearing the session.
-  useEffect(() => {
-    const handleClose = () => {
-        clearSession();
-    };
-    // The component is controlled by an external `open` state. 
-    // `onClose` is the trigger to close it. We hook into that.
-    // However, since we can't directly know when the sheet is closed from a prop,
-    // we assume the parent component will re-mount this component or change the route prop,
-    // which triggers the cleanup. For a more direct approach, we rely on the `onClose` call.
-    // Let's add a specific effect for `onClose`.
-    
-    // The parent's onOpenChange will call our onClose. Let's make it robust.
-    // We'll reset state when the sheet is asked to close.
-    const originalOnClose = onClose;
-    onClose = () => {
-        clearSession();
-        originalOnClose();
-    }
 
-  }, [onClose]);
 
   useEffect(() => {
     // On component mount, check for an existing session
     const storedTimestamp = localStorage.getItem(TIMER_KEY);
-    const storedSession = sessionStorage.getItem(SESSION_KEY);
+    const storedSeats = sessionStorage.getItem(LOCKED_SEATS_KEY);
+    const storedRouteId = sessionStorage.getItem(LOCKED_ROUTE_ID_KEY);
+    const storedStep = sessionStorage.getItem(SESSION_STEP_KEY);
 
-    if (storedTimestamp && storedSession) {
+    if (storedTimestamp && storedSeats && storedRouteId && storedRouteId === route.id) {
         const timestamp = parseInt(storedTimestamp, 10);
-        const sessionData = JSON.parse(storedSession);
         
-        if (timestamp > Date.now() && sessionData.routeId === route.id) {
+        if (timestamp > Date.now()) {
             setExpiryTimestamp(timestamp);
-            setSelectedSeats(sessionData.selectedSeats || []);
-            setSelectedPickupPoint(sessionData.selectedPickupPoint || '');
-            setStep(sessionData.step || 1);
+            setSelectedSeats(JSON.parse(storedSeats));
+            setSelectedPickupPoint(''); // This is not persisted for simplicity
+            setStep(parseInt(storedStep || '1', 10));
         } else {
-            // Timer expired or it's for a different route
             clearSession();
         }
+    } else {
+        clearSession();
     }
   }, [route.id]);
 
   const saveSession = (currentStep: number, currentSeats: string[], currentPickup: string) => {
-    const sessionData = {
-      routeId: route.id,
-      step: currentStep,
-      selectedSeats: currentSeats,
-      selectedPickupPoint: currentPickup,
-    };
-    sessionStorage.setItem(SESSION_KEY, JSON.stringify(sessionData));
+    sessionStorage.setItem(SESSION_STEP_KEY, currentStep.toString());
+    sessionStorage.setItem(LOCKED_SEATS_KEY, JSON.stringify(currentSeats));
+    sessionStorage.setItem(LOCKED_ROUTE_ID_KEY, route.id);
+    // Note: Pickup point is not saved in session to keep it simple.
   }
 
 
@@ -130,15 +116,16 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
     setSelectedSeats((prev) => {
       const newSeats = isCurrentlySelected ? prev.filter((s) => s !== seatId) : [...prev, seatId];
-      saveSession(step, newSeats, selectedPickupPoint);
       return newSeats;
     });
   };
 
   const startTimer = () => {
     if (!expiryTimestamp) {
-        const newExpiryTimestamp = Date.now() + 4 * 60 * 1000;
+        const newExpiryTimestamp = Date.now() + 5 * 60 * 1000; // 5 minutes
         localStorage.setItem(TIMER_KEY, newExpiryTimestamp.toString());
+        sessionStorage.setItem(LOCKED_SEATS_KEY, JSON.stringify(selectedSeats));
+        sessionStorage.setItem(LOCKED_ROUTE_ID_KEY, route.id);
         setExpiryTimestamp(newExpiryTimestamp);
     }
   };
@@ -179,14 +166,21 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         title: 'Booking Timer Cancelled',
         description: 'Your seat selection has been reset. You can now choose new seats.',
     });
-    // We keep the sheet open, so we don't call onClose()
   }
 
   const handleConfirmBooking = async () => {
     if (passengerFormRef.current) {
       const { isValid, data } = await passengerFormRef.current.triggerValidation();
       if (isValid && data) {
-        clearSession();
+        
+        // This is where we would typically call an API to finalize the booking.
+        // For this demo, we'll directly manipulate the mock data.
+        const routeIndex = mockBusRoutes.findIndex(r => r.id === route.id);
+        if (routeIndex !== -1) {
+            const currentBookedSeats = new Set(mockBusRoutes[routeIndex].seatLayout.booked);
+            selectedSeats.forEach(seat => currentBookedSeats.add(seat));
+            mockBusRoutes[routeIndex].seatLayout.booked = Array.from(currentBookedSeats);
+        }
         
         const pnr = `SY${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
@@ -195,12 +189,13 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             contactName: data.contactName,
             contactMobile: data.contactMobile,
             passengers: data.passengers,
-            route,
+            route: mockBusRoutes[routeIndex], // send the updated route object
             selectedSeats,
             pickupPoint: selectedPickupPoint,
             departureDate: departureDate ? departureDate.toISOString() : null,
             totalAmount: passengerFormRef.current.getTotalAmount(),
             status: 'Paid',
+            customerId: data.contactMobile,
         };
         
         sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
@@ -210,6 +205,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             description: `Your PNR is ${pnr}. Redirecting to your ticket...`,
         });
 
+        clearSession(); // Important: Clear the session lock after booking
         onClose();
         router.push(`/invoice/${pnr}`);
       }
@@ -227,14 +223,14 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
       <button
         key={id}
         onClick={() => handleSeatClick(id, isBooked)}
-        disabled={isBooked}
+        disabled={isBooked || (!!expiryTimestamp && !isSelected)}
         className={cn(
           "flex flex-col items-center justify-center rounded-md border-2 transition-colors w-12 h-14",
           {
             'bg-muted border-gray-300 cursor-not-allowed': status === 'booked',
             'bg-background hover:bg-accent border-gray-400': status === 'available',
             'bg-primary text-primary-foreground border-primary': status === 'selected',
-            'cursor-not-allowed hover:bg-primary': expiryTimestamp && status !== 'selected'
+            'cursor-not-allowed opacity-60': expiryTimestamp && status === 'available'
           }
         )}
         aria-label={`Seat ${id}, ${status}`}

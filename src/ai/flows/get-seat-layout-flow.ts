@@ -13,6 +13,8 @@ import { mockBusRoutes } from '@/lib/mock-data';
 
 const GetSeatLayoutInputSchema = z.object({
   routeId: z.string().describe('The ID of the bus route.'),
+  lockedSeats: z.array(z.string()).optional().describe('An array of seat IDs that are temporarily locked in a session.'),
+  currentRouteId: z.string().optional().describe('The route ID for which seats are locked.'),
 });
 export type GetSeatLayoutInput = z.infer<typeof GetSeatLayoutInputSchema>;
 
@@ -34,13 +36,23 @@ const getSeatLayoutFlow = ai.defineFlow(
     inputSchema: GetSeatLayoutInputSchema,
     outputSchema: GetSeatLayoutOutputSchema,
   },
-  async ({ routeId }) => {
+  async ({ routeId, lockedSeats, currentRouteId }) => {
     const route = mockBusRoutes.find(r => r.id === routeId);
 
     if (!route) {
       return null;
     }
 
-    return route.seatLayout;
+    // Combine permanently booked seats with temporarily locked seats
+    // only if the lock belongs to the current route
+    const allBookedSeats = new Set(route.seatLayout.booked);
+    if (lockedSeats && currentRouteId === routeId) {
+        lockedSeats.forEach(seat => allBookedSeats.add(seat));
+    }
+
+    return {
+        ...route.seatLayout,
+        booked: Array.from(allBookedSeats)
+    };
   }
 );
