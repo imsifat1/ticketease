@@ -4,22 +4,16 @@ import { NextResponse } from "next/server";
 export const dynamic = 'force-dynamic';
 
 export async function GET(
-    request: Request,
-    { params }: { params: { customerId: string } }
+    request: Request
 ) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status") || undefined;
-    const customerId = params.customerId;
-    
-    if (!customerId) {
-        return NextResponse.json({ error: "customerId is required" }, { status: 400 });
-    }
 
     try {
-        const bookings = await getBookings({ customerId, status });
+        const bookings = await getBookings({ status });
         return NextResponse.json(bookings);
     } catch (error) {
-        console.error("Error fetching bookings:", error);
+        console.error("Error fetching all bookings:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }

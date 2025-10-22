@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview A flow for retrieving mock booking data for a specific customer.
+ * @fileOverview A flow for retrieving mock booking data. It can filter by customer and/or status.
  *
- * - getBookings - A function that returns a list of bookings for a given customer ID.
+ * - getBookings - A function that returns a list of bookings.
  * - GetBookingsInput - The input type for the getBookings function.
  * - GetBookingsOutput - The output type for the getBookings function.
  */
@@ -10,10 +10,11 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { mockBookings } from '@/lib/mock-data';
-import type { Booking } from '@/lib/types';
+import type { Booking, BookingStatus } from '@/lib/types';
 
 const GetBookingsInputSchema = z.object({
-    customerId: z.string().describe("The ID of the customer, usually their mobile number."),
+    customerId: z.string().optional().describe("The ID of the customer, usually their mobile number."),
+    status: z.string().optional().describe("The booking status to filter by (e.g., 'Paid', 'Booked')."),
 });
 export type GetBookingsInput = z.infer<typeof GetBookingsInputSchema>;
 
@@ -44,8 +45,17 @@ const getBookingsFlow = ai.defineFlow(
     inputSchema: GetBookingsInputSchema,
     outputSchema: GetBookingsOutputSchema,
   },
-  async ({ customerId }) => {
-    // Filter bookings for the given customerId
-    return mockBookings.filter(booking => booking.customerId === customerId);
+  async ({ customerId, status }) => {
+    let filteredBookings = mockBookings;
+
+    if (customerId) {
+        filteredBookings = filteredBookings.filter(booking => booking.customerId === customerId);
+    }
+
+    if (status) {
+        filteredBookings = filteredBookings.filter(booking => booking.status.toLowerCase() === status.toLowerCase());
+    }
+
+    return filteredBookings;
   }
 );
