@@ -38,9 +38,6 @@ const lockSeatsFlow = ai.defineFlow(
     outputSchema: LockSeatsOutputSchema,
   },
   async ({ busId, seatNumbers, customerId, date }) => {
-    
-    console.log('Attempting to lock seats with the following data:', { busId, seatNumbers, customerId, date });
-    
     const route = mockBusRoutes.find(r => r.id === busId);
     
     if (!route) {
@@ -58,8 +55,6 @@ const lockSeatsFlow = ai.defineFlow(
     
     // In a real application, you would lock the seats in a database with an expiry time.
     // For this demo, we'll just simulate a successful lock.
-    console.log(`Seats ${seatNumbers.join(', ')} for bus ${busId} on ${date} are now locked for customer ${customerId}.`);
-    
     return {
       success: true,
       message: 'Seats successfully locked for 5 minutes.',
