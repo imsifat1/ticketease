@@ -14,7 +14,7 @@ import type { Booking, BookingStatus } from '@/lib/types';
 
 const GetBookingsInputSchema = z.object({
     customerId: z.string().optional().describe("The ID of the customer, usually their mobile number."),
-    status: z.string().optional().describe("The booking status to filter by (e.g., 'Paid', 'Booked')."),
+    status: z.string().optional().describe("The booking status to filter by (e.g., 'Paid', 'Booked', 'upcoming', 'all')."),
 });
 export type GetBookingsInput = z.infer<typeof GetBookingsInputSchema>;
 
@@ -52,8 +52,17 @@ const getBookingsFlow = ai.defineFlow(
         filteredBookings = filteredBookings.filter(booking => booking.customerId === customerId);
     }
 
-    if (status) {
-        filteredBookings = filteredBookings.filter(booking => booking.status.toLowerCase() === status.toLowerCase());
+    if (status && status.toLowerCase() !== 'all') {
+        if (status.toLowerCase() === 'upcoming') {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to the beginning of today
+            filteredBookings = filteredBookings.filter(booking => {
+                const departureDate = new Date(booking.departureDate);
+                return departureDate >= today;
+            });
+        } else {
+            filteredBookings = filteredBookings.filter(booking => booking.status.toLowerCase() === status.toLowerCase());
+        }
     }
 
     return filteredBookings;
