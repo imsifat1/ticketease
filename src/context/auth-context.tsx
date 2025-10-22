@@ -9,9 +9,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
+interface User {
+  mobileNumber: string;
+}
+
 interface AuthContextType {
   isLoggedIn: boolean;
-  login: () => void;
+  user: User | null;
+  login: (user: User) => void;
   logout: () => void;
   isLoginDialogOpen: boolean;
   setLoginDialogOpen: (isOpen: boolean) => void;
@@ -19,11 +24,22 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   isLoggedIn: false,
+  user: null,
   login: () => {},
   logout: () => {},
   isLoginDialogOpen: false,
   setLoginDialogOpen: () => {},
 });
+
+// Custom hook to use the AuthContext
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};
+
 
 function LoginDialog() {
   const { isLoginDialogOpen, setLoginDialogOpen, login } = useContext(AuthContext);
@@ -84,7 +100,7 @@ function LoginDialog() {
   };
   
   const handleLoginSuccess = () => {
-    login();
+    login({ mobileNumber });
     toast({
       title: 'Login Successful!',
       description: 'You can now proceed with your booking.',
@@ -174,13 +190,16 @@ function LoginDialog() {
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoginDialogOpen, setLoginDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     try {
-      const storedIsLoggedIn = localStorage.getItem('isLoggedIn');
-      if (storedIsLoggedIn === 'true') {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
         setIsLoggedIn(true);
       }
     } catch (error) {
@@ -189,21 +208,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
   }, []);
   
-  const login = () => {
+  const login = (userData: User) => {
     try {
-      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('user', JSON.stringify(userData));
     } catch (error) {
        console.error("Could not access localStorage", error);
     }
+    setUser(userData);
     setIsLoggedIn(true);
   };
 
   const logout = () => {
     try {
-      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('user');
     } catch (error) {
       console.error("Could not access localStorage", error);
     }
+    setUser(null);
     setIsLoggedIn(false);
   };
   
@@ -212,7 +233,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, login, logout, isLoginDialogOpen, setLoginDialogOpen }}>
+    <AuthContext.Provider value={{ isLoggedIn, user, login, logout, isLoginDialogOpen, setLoginDialogOpen }}>
       {children}
       <LoginDialog />
     </AuthContext.Provider>

@@ -8,7 +8,6 @@ const LockSeatsInputSchema = z.object({
   busId: z.string().describe('The ID of the bus route.'),
   seatNumbers: z.array(z.string()).describe('The array of seat numbers to lock.'),
   customerId: z.string().describe('The ID of the customer.'),
-  date: z.string().describe('The date of the journey in YYYY-MM-DD format.'),
 });
 
 export async function POST(request: Request) {
@@ -29,7 +28,7 @@ export async function POST(request: Request) {
         const result = await lockSeats(validation.data);
 
         if (!result.success) {
-            return NextResponse.json({ error: result.message }, { status: 409 }); // 409 Conflict is suitable for "already booked"
+            return NextResponse.json({ error: result.message }, { status: 409 }); // 409 Conflict is suitable for "already booked/locked"
         }
 
         return NextResponse.json(result);

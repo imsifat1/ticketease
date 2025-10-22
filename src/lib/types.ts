@@ -46,3 +46,11 @@ export type Booking = {
     contactMobile: string;
     customerId: string; // Usually the mobile number or a user ID
 }
+
+export type SeatLock = {
+    lockId: string;
+    busId: string;
+    seatNumbers: string[];
+    customerId: string;
+    expiresAt: number; // Unix timestamp
+};

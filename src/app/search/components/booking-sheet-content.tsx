@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock } from 'lucide-react';
+import { Armchair, X, BusFront, ArrowRight, Calendar, ArrowLeft, Clock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { BusRoute } from '@/lib/types';
+import type { BusRoute, SeatLock } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,9 @@ import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
 import { mockBusRoutes } from '@/lib/mock-data';
+import { lockSeats } from '@/ai/flows/lock-seat-flow';
+import { useAuth } from '@/context/auth-context';
+
 
 interface BookingSheetContentProps {
   route: BusRoute;
@@ -19,82 +22,39 @@ interface BookingSheetContentProps {
   onClose: () => void;
 }
 
-const TIMER_KEY = 'bookingExpiryTimestamp';
-const LOCKED_SEATS_KEY = 'lockedSeats';
-const LOCKED_ROUTE_ID_KEY = 'lockedRouteId';
-const SESSION_STEP_KEY = 'bookingStep';
-
-
 export default function BookingSheetContent({ route, departureDate, onClose }: BookingSheetContentProps) {
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string>('');
   const [step, setStep] = useState(1); // 1: seat, 2: pickup, 3: summary
-  const [expiryTimestamp, setExpiryTimestamp] = useState<number | null>(null);
+  const [activeLock, setActiveLock] = useState<Pick<SeatLock, 'lockId' | 'expiresAt'> | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   const { toast } = useToast();
   const passengerFormRef = useRef<PassengerDetailsFormHandle>(null);
   const router = useRouter();
+  const { user } = useAuth(); // Assuming useAuth provides the logged-in user's info
 
   const clearSession = () => {
-      localStorage.removeItem(TIMER_KEY);
-      sessionStorage.removeItem(LOCKED_SEATS_KEY);
-      sessionStorage.removeItem(LOCKED_ROUTE_ID_KEY);
-      sessionStorage.removeItem(SESSION_STEP_KEY);
-      setExpiryTimestamp(null);
+      // In a real app, we might want to call an API to release the lock explicitly
+      // For now, the lock will just expire on the server.
+      setActiveLock(null);
       setSelectedSeats([]);
       setSelectedPickupPoint('');
       setStep(1);
   };
   
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      clearSession();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
+    // This effect is to clear the session when the component unmounts (e.g., sheet is closed)
     return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
       clearSession();
     };
   }, []);
 
 
-  useEffect(() => {
-    // On component mount, check for an existing session
-    const storedTimestamp = localStorage.getItem(TIMER_KEY);
-    const storedSeats = sessionStorage.getItem(LOCKED_SEATS_KEY);
-    const storedRouteId = sessionStorage.getItem(LOCKED_ROUTE_ID_KEY);
-    const storedStep = sessionStorage.getItem(SESSION_STEP_KEY);
-
-    if (storedTimestamp && storedSeats && storedRouteId && storedRouteId === route.id) {
-        const timestamp = parseInt(storedTimestamp, 10);
-        
-        if (timestamp > Date.now()) {
-            setExpiryTimestamp(timestamp);
-            setSelectedSeats(JSON.parse(storedSeats));
-            setSelectedPickupPoint(''); // This is not persisted for simplicity
-            setStep(parseInt(storedStep || '1', 10));
-        } else {
-            clearSession();
-        }
-    } else {
-        clearSession();
-    }
-  }, [route.id]);
-
-  const saveSession = (currentStep: number, currentSeats: string[], currentPickup: string) => {
-    sessionStorage.setItem(SESSION_STEP_KEY, currentStep.toString());
-    sessionStorage.setItem(LOCKED_SEATS_KEY, JSON.stringify(currentSeats));
-    sessionStorage.setItem(LOCKED_ROUTE_ID_KEY, route.id);
-    // Note: Pickup point is not saved in session to keep it simple.
-  }
-
-
   const handleSeatClick = (seatId: string, isBooked: boolean) => {
     if (isBooked) return;
 
-    if (expiryTimestamp) {
+    if (activeLock) {
         toast({
             title: 'Booking in Progress',
             description: 'You cannot change seats while your booking session is active. Go back to seat selection to unlock.',
@@ -120,16 +80,6 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
     });
   };
 
-  const startTimer = () => {
-    if (!expiryTimestamp) {
-        const newExpiryTimestamp = Date.now() + 5 * 60 * 1000; // 5 minutes
-        localStorage.setItem(TIMER_KEY, newExpiryTimestamp.toString());
-        sessionStorage.setItem(LOCKED_SEATS_KEY, JSON.stringify(selectedSeats));
-        sessionStorage.setItem(LOCKED_ROUTE_ID_KEY, route.id);
-        setExpiryTimestamp(newExpiryTimestamp);
-    }
-  };
-
   const handleTimeout = () => {
     toast({
         title: "Session Expired",
@@ -142,22 +92,39 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
 
   const handleProceedToPickup = () => {
     if (step === 1 && selectedSeats.length > 0) {
-      startTimer();
-      setStep(2);
-      saveSession(2, selectedSeats, selectedPickupPoint);
+      startTransition(async () => {
+        if (!user) {
+            toast({ title: 'Authentication Error', description: 'User not found.', variant: 'destructive'});
+            return;
+        }
+        const result = await lockSeats({
+            busId: route.id,
+            seatNumbers: selectedSeats,
+            customerId: user.mobileNumber, // Use logged-in user's mobile number
+        });
+        
+        if (result.success && result.lockId && result.expiresAt) {
+            setActiveLock({ lockId: result.lockId, expiresAt: result.expiresAt });
+            setStep(2);
+        } else {
+             toast({
+                title: 'Failed to lock seats',
+                description: result.message,
+                variant: 'destructive',
+            });
+        }
+      });
     }
   };
 
   const handleProceedToSummary = () => {
     if (step === 2 && selectedPickupPoint) {
       setStep(3);
-      saveSession(3, selectedSeats, selectedPickupPoint);
     }
   };
 
   const handleGoBackFromSummary = () => {
     setStep(2);
-    saveSession(2, selectedSeats, selectedPickupPoint);
   }
 
   const handleGoBackFromPickup = () => {
@@ -223,14 +190,14 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
       <button
         key={id}
         onClick={() => handleSeatClick(id, isBooked)}
-        disabled={isBooked || (!!expiryTimestamp && !isSelected)}
+        disabled={isBooked || (!!activeLock && !isSelected)}
         className={cn(
           "flex flex-col items-center justify-center rounded-md border-2 transition-colors w-12 h-14",
           {
             'bg-muted border-gray-300 cursor-not-allowed': status === 'booked',
             'bg-background hover:bg-accent border-gray-400': status === 'available',
             'bg-primary text-primary-foreground border-primary': status === 'selected',
-            'cursor-not-allowed opacity-60': expiryTimestamp && status === 'available'
+            'cursor-not-allowed opacity-60': activeLock && status === 'available'
           }
         )}
         aria-label={`Seat ${id}, ${status}`}
@@ -320,10 +287,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
         {step === 2 && (
           <div className="mt-16 pt-4">
             <h3 className="text-lg font-semibold mb-4">Select Your Pickup Point</h3>
-            <RadioGroup value={selectedPickupPoint} onValueChange={(value) => {
-                setSelectedPickupPoint(value);
-                saveSession(step, selectedSeats, value);
-            }} className="space-y-2">
+            <RadioGroup value={selectedPickupPoint} onValueChange={setSelectedPickupPoint} className="space-y-2">
               {route.pickupPoints.map((point) => (
                 <Label key={point.name} htmlFor={point.name} className="flex items-center justify-between p-4 border rounded-md cursor-pointer hover:bg-accent has-[:checked]:bg-accent has-[:checked]:border-primary">
                     <div className="flex items-center">
@@ -347,7 +311,7 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                     route={route}
                     selectedSeats={selectedSeats}
                     pickupPoint={selectedPickupPoint}
-                    expiryTimestamp={expiryTimestamp}
+                    expiryTimestamp={activeLock?.expiresAt ?? null}
                     onTimeout={handleTimeout}
                  />
             </div>
@@ -365,8 +329,8 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
                   <p className="font-bold text-2xl text-primary">BDT {totalPrice.toLocaleString()}</p>
                 </div>
                 {step === 1 && (
-                    <Button size="lg" disabled={selectedSeats.length === 0} onClick={handleProceedToPickup}>
-                        Proceed
+                    <Button size="lg" disabled={selectedSeats.length === 0 || isPending} onClick={handleProceedToPickup}>
+                        {isPending ? <Loader2 className="animate-spin" /> : 'Proceed'}
                     </Button>
                 )}
                  {step === 2 && (
