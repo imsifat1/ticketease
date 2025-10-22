@@ -3,12 +3,10 @@
  * @fileOverview A flow for locking bus seats.
  *
  * - lockSeats - A function that locks seats for a given bus, customer, and date.
- * - LockSeatsInput - The input type for the lockSeats function.
- * - LockSeatsOutput - The output type for the lockSeats function.
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { mockBusRoutes } from '@/lib/mock-data';
 
 const LockSeatsInputSchema = z.object({
@@ -17,7 +15,7 @@ const LockSeatsInputSchema = z.object({
   customerId: z.string().describe('The ID of the customer.'),
   date: z.string().describe('The date of the journey in YYYY-MM-DD format.'),
 });
-export type LockSeatsInput = z.infer<typeof LockSeatsInputSchema>;
+type LockSeatsInput = z.infer<typeof LockSeatsInputSchema>;
 
 const LockSeatsOutputSchema = z.object({
   success: z.boolean().describe('Whether the lock operation was successful.'),
@@ -25,7 +23,7 @@ const LockSeatsOutputSchema = z.object({
   lockedSeats: z.array(z.string()).optional().describe('The seats that were successfully locked.'),
   error: z.string().optional().describe('An error message if the operation failed.'),
 });
-export type LockSeatsOutput = z.infer<typeof LockSeatsOutputSchema>;
+type LockSeatsOutput = z.infer<typeof LockSeatsOutputSchema>;
 
 
 export async function lockSeats(input: LockSeatsInput): Promise<LockSeatsOutput> {
