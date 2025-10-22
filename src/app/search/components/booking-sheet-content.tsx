@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import PassengerDetailsForm, { type PassengerDetailsFormHandle } from './passenger-details-form';
 import { mockBusRoutes } from '@/lib/mock-data';
 import { useAuth } from '@/context/auth-context';
+import { addRewardPoints } from '@/lib/wallet-store';
 
 
 interface BookingSheetContentProps {
@@ -157,6 +158,8 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
       const { isValid, data } = await passengerFormRef.current.triggerValidation();
       if (isValid && data) {
         
+        const totalAmount = passengerFormRef.current.getTotalAmount();
+        
         // This is where we would typically call an API to finalize the booking.
         // For this demo, we'll directly manipulate the mock data.
         const routeIndex = mockBusRoutes.findIndex(r => r.id === route.id);
@@ -177,12 +180,23 @@ export default function BookingSheetContent({ route, departureDate, onClose }: B
             selectedSeats,
             pickupPoint: selectedPickupPoint,
             departureDate: departureDate ? departureDate.toISOString() : null,
-            totalAmount: passengerFormRef.current.getTotalAmount(),
+            totalAmount: totalAmount,
             status: 'Paid',
             customerId: data.contactMobile,
         };
         
         sessionStorage.setItem(`booking-${pnr}`, JSON.stringify(bookingDetails));
+        
+        // Add reward points
+        const pointsEarned = Math.floor(totalAmount / 100);
+        if (pointsEarned > 0) {
+            addRewardPoints(data.contactMobile, pointsEarned);
+            toast({
+                title: 'Reward Points Earned!',
+                description: `You have earned ${pointsEarned} points from this booking.`,
+            });
+        }
+
 
         toast({
             title: 'Booking Successful!',

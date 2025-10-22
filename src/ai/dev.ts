@@ -6,3 +6,5 @@ import './flows/get-bookings-flow';
 import './flows/get-customers-flow';
 import './flows/get-ticket-by-pnr-flow';
 import './flows/get-all-locked-seats-flow';
+import './flows/get-wallet-flow';
+import './flows/redeem-points-flow';

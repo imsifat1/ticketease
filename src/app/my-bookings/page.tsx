@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useTransition } from 'react';
+import React, { useState, useMemo, useTransition, useEffect, useContext } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Ticket,
@@ -14,19 +14,22 @@ import {
   Clock,
   Armchair,
   Loader2,
+  Wallet as WalletIcon,
+  Gift,
 } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import type { Booking } from '@/lib/types';
+import type { Booking, Wallet } from '@/lib/types';
 import { mockBookings as initialBookings } from '@/lib/mock-data';
 import { useToast } from '@/hooks/use-toast';
 import { sendOtp } from '@/ai/flows/send-otp-flow';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { AuthContext } from '@/context/auth-context';
 
 
 type BookingStatus = 'Booked' | 'Paid' | 'Canceled' | 'Expired' | 'Reissued';
@@ -47,6 +50,44 @@ const statusColors: Record<BookingStatus, string> = {
     Expired: 'bg-yellow-100 text-yellow-800 border-yellow-300',
     Reissued: 'bg-purple-100 text-purple-800 border-purple-300',
 };
+
+const WalletCard = ({ wallet, onRedeem }: { wallet: Wallet | null, onRedeem: () => void }) => {
+    const [isRedeeming, startRedeemTransition] = useTransition();
+
+    const handleRedeem = () => {
+        startRedeemTransition(async () => {
+            await onRedeem();
+        });
+    };
+    
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2"><WalletIcon /> My Wallet</CardTitle>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col items-center justify-center p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Current Balance</p>
+                    <p className="text-3xl font-bold text-primary">৳{wallet?.balance.toFixed(2) ?? '0.00'}</p>
+                </div>
+                 <div className="flex flex-col items-center justify-center p-4 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">Reward Points</p>
+                    <p className="text-3xl font-bold text-amber-500">{wallet?.rewardPoints ?? 0}</p>
+                </div>
+            </CardContent>
+            <CardFooter className="flex-col items-start gap-2">
+                 <Button 
+                    onClick={handleRedeem} 
+                    disabled={!wallet || wallet.rewardPoints < 100 || isRedeeming}
+                    className="w-full"
+                >
+                    {isRedeeming ? <Loader2 className="animate-spin" /> : <><Gift className="mr-2" /> Redeem 100 Points for ৳100</>}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center w-full">You get 1 point for every ৳100 spent. Redeem 100 points to get ৳100 in your wallet.</p>
+            </CardFooter>
+        </Card>
+    )
+}
 
 
 const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: string) => void; }) => {
@@ -131,7 +172,8 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking, onCancel: (pnr: 
 
 export default function MyBookingsPage() {
   const [activeFilter, setActiveFilter] = useState<BookingStatus | 'All'>('All');
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [bookingToCancel, setBookingToCancel] = useState<Booking | null>(null);
   const [cancelStep, setCancelStep] = useState<'initial' | 'otp'>('initial');
@@ -139,8 +181,37 @@ export default function MyBookingsPage() {
   const [generatedOtp, setGeneratedOtp] = useState('');
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { user, isLoggedIn } = useContext(AuthContext);
+  const router = useRouter();
   
   const isDevMode = !process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID || process.env.NEXT_PUBLIC_TWILIO_ACCOUNT_SID.startsWith('ACxxx');
+
+  const fetchWallet = async () => {
+    if (user) {
+        try {
+            const response = await fetch(`/api/v1/wallet/${user.mobileNumber}`);
+            if (response.ok) {
+                const data = await response.json();
+                setWallet(data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch wallet:', error);
+        }
+    }
+  };
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      router.push('/');
+      return;
+    }
+
+    const customerBookings = initialBookings.filter(b => b.customerId === user?.mobileNumber);
+    setBookings(customerBookings);
+    
+    fetchWallet();
+  }, [isLoggedIn, user, router]);
+
 
   const handleOpenCancelDialog = (pnr: string) => {
     const booking = bookings.find(b => b.pnr === pnr);
@@ -214,6 +285,33 @@ export default function MyBookingsPage() {
     handleCloseCancelDialog();
   }
 
+  const handleRedeemPoints = async () => {
+      if (!user) return;
+      try {
+          const response = await fetch(`/api/v1/wallet/${user.mobileNumber}/redeem`, { method: 'POST' });
+          const result = await response.json();
+          if (response.ok && result.success) {
+              setWallet(result.wallet);
+              toast({
+                  title: 'Points Redeemed!',
+                  description: result.message,
+              });
+          } else {
+              toast({
+                  title: 'Redemption Failed',
+                  description: result.message || 'An error occurred.',
+                  variant: 'destructive',
+              });
+          }
+      } catch (error) {
+          toast({
+              title: 'Error',
+              description: 'Could not connect to the server.',
+              variant: 'destructive',
+          });
+      }
+  };
+
   const filteredBookings = useMemo(() => {
     if (activeFilter === 'All') {
       return bookings;
@@ -221,28 +319,45 @@ export default function MyBookingsPage() {
     return bookings.filter((booking) => booking.status === activeFilter);
   }, [activeFilter, bookings]);
 
+  if (!isLoggedIn) {
+      return (
+          <div className="container mx-auto px-4 py-8 text-center">
+              <Loader2 className="animate-spin mx-auto" />
+              <p>Redirecting...</p>
+          </div>
+      );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
+      <h1 className="text-3xl font-bold mb-6">My Bookings & Wallet</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filter Bookings</CardTitle>
-        </CardHeader>
-        <CardContent className="p-6 pt-0 flex flex-wrap gap-2">
-          {filterOptions.map(({ label, icon: Icon }) => (
-            <Button
-              key={label}
-              variant={activeFilter === label ? 'default' : 'outline'}
-              className={cn("gap-2", activeFilter !== label && "border-muted-foreground/50 text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
-              onClick={() => setActiveFilter(label as BookingStatus | 'All')}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </Button>
-          ))}
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          <div className="lg:col-span-1">
+              <WalletCard wallet={wallet} onRedeem={handleRedeemPoints} />
+          </div>
+          <div className="lg:col-span-2">
+            <Card>
+                <CardHeader>
+                <CardTitle>Filter Bookings</CardTitle>
+                </CardHeader>
+                <CardContent className="p-6 pt-0 flex flex-wrap gap-2">
+                {filterOptions.map(({ label, icon: Icon }) => (
+                    <Button
+                    key={label}
+                    variant={activeFilter === label ? 'default' : 'outline'}
+                    className={cn("gap-2", activeFilter !== label && "border-muted-foreground/50 text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
+                    onClick={() => setActiveFilter(label as BookingStatus | 'All')}
+                    >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                    </Button>
+                ))}
+                </CardContent>
+            </Card>
+          </div>
+      </div>
+
 
         <div className="mt-8 grid grid-cols-1 gap-6">
             {filteredBookings.length > 0 ? (

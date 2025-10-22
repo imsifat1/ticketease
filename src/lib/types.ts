@@ -54,3 +54,9 @@ export type SeatLock = {
     customerId: string;
     expiresAt: number; // Unix timestamp
 };
+
+export type Wallet = {
+    customerId: string;
+    balance: number;
+    rewardPoints: number;
+};
